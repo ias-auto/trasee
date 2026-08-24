@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12161C">
+<title>Unealtă — trasează străzile din OpenStreetMap</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+:root{
+  --fund:#12161C; --panel:#1A2029; --panel-2:#232B36; --contur:#313C4A;
+  --text:#E9EEF4; --gri:#8B98A6; --chihlimbar:#F4B31C;
+  --ok:#2FBF71; --atentie:#F4B31C; --rau:#E23B3B; --info:#4C9AFF;
+  --mono:ui-monospace,"SF Mono","Roboto Mono","DejaVu Sans Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --jos:env(safe-area-inset-bottom,0px); --sus:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:var(--fund);color:var(--text);font-family:var(--sans);font-size:15px;display:flex;flex-direction:column}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--chihlimbar);outline-offset:2px;border-radius:6px}
+
+/* cap */
+#cap{flex:none;padding:calc(var(--sus) + 12px) 14px 12px;border-bottom:1px solid var(--contur);background:var(--panel)}
+#cap h1{margin:0;font-size:15.5px;letter-spacing:-.01em}
+#cap .sub{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--chihlimbar);font-weight:700;margin-bottom:3px}
+#cap p{margin:5px 0 0;font-size:12.5px;color:var(--gri);line-height:1.5}
+
+/* pasi */
+#pas1{flex:none;padding:16px 14px;border-bottom:1px solid var(--contur)}
+.btn{padding:14px;border-radius:13px;font-weight:700;font-size:15px;text-align:center;display:block;width:100%}
+.btn-plin{background:var(--chihlimbar);color:#12161C}
+.btn-plin:disabled{opacity:.45}
+.btn-gol{background:var(--panel-2);border:1px solid var(--contur)}
+.btn-ok{background:var(--ok);color:#0B1A11}
+#stare-descarcare{margin-top:11px;font-size:12.5px;color:var(--gri);font-family:var(--mono);line-height:1.6;display:none}
+#stare-descarcare.vizibil{display:block}
+#stare-descarcare b{color:var(--text)}
+.bara-progres{height:4px;background:var(--panel-2);border-radius:2px;overflow:hidden;margin-top:9px}
+.bara-progres i{display:block;height:100%;width:0;background:var(--chihlimbar);transition:width .3s}
+
+/* harta */
+#harta{flex:none;height:38vh;min-height:210px;background:var(--panel-2);display:none}
+#harta.vizibil{display:block}
+.leaflet-container{background:#dfe3e8;font-family:var(--sans)}
+.leaflet-control-attribution{font-size:9px!important}
+.pin-taiere{
+  width:13px;height:13px;border-radius:50%;background:#fff;border:3px solid #7B2CF5;
+  box-shadow:0 1px 5px rgba(0,0,0,.5);
+}
+
+/* lista */
+#zona-lista{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none}
+#zona-lista.vizibil{display:block}
+#rezumat{
+  position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--contur);
+  padding:11px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+}
+.chip{font-family:var(--mono);font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;letter-spacing:.04em}
+.c-ok{background:rgba(47,191,113,.16);color:#7EE2AC}
+.c-atentie{background:rgba(244,179,28,.16);color:var(--chihlimbar)}
+.c-rau{background:rgba(226,59,59,.16);color:#FF8A8A}
+#rezumat .btn-mic{margin-left:auto;font-size:12px;font-weight:700;color:var(--chihlimbar);padding:5px 2px}
+
+.card{border-bottom:1px solid rgba(49,60,74,.6);padding:12px 14px}
+.card.selectat{background:rgba(244,179,28,.07);border-left:3px solid var(--chihlimbar);padding-left:11px}
+.card-sus{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left}
+.crt{flex:none;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;
+  font-family:var(--mono);font-size:11.5px;font-weight:700;background:var(--panel-2);border:1px solid var(--contur);color:var(--gri)}
+.card.aprobat .crt{background:var(--ok);border-color:var(--ok);color:#0B1A11}
+.card-txt{flex:1;min-width:0}
+.card-nume{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+.card-tronson{font-size:12px;color:var(--gri);margin-top:1px}
+.card-osm{font-family:var(--mono);font-size:11px;color:var(--info);margin-top:4px;word-break:break-word}
+.card-mesaj{font-size:12px;margin-top:5px;line-height:1.5}
+.punct{flex:none;width:9px;height:9px;border-radius:50%;margin-top:10px}
+.p-ok{background:var(--ok)} .p-atentie{background:var(--atentie)} .p-rau{background:var(--rau)}
+.card-actiuni{display:flex;gap:7px;margin-top:11px}
+.act{flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:700;text-align:center;border:1px solid var(--contur);background:var(--panel-2)}
+.act.da{background:var(--ok);border-color:var(--ok);color:#0B1A11}
+.act.nu{color:#FF8A8A}
+.detaliu{margin-top:9px;font-family:var(--mono);font-size:11px;color:var(--gri);line-height:1.7}
+
+/* subsol */
+#subsol{flex:none;padding:12px 14px calc(12px + var(--jos));border-top:1px solid var(--contur);background:var(--panel);display:none}
+#subsol.vizibil{display:block}
+#subsol .nota{font-size:11.5px;color:var(--gri);margin-top:9px;line-height:1.5;text-align:center}
+
+#eroare{padding:16px;margin:14px;border-radius:12px;background:rgba(226,59,59,.12);
+  border:1px solid rgba(226,59,59,.4);font-size:13px;line-height:1.6;display:none}
+#eroare.vizibil{display:block}
+#eroare b{display:block;margin-bottom:5px;color:#FF8A8A}
+</style>
+</head>
+<body>
+
+<header id="cap">
+  <div class="sub">IAS Trasee · unealtă unică</div>
+  <h1>Trasează străzile din OpenStreetMap</h1>
+  <p>Descarcă o singură dată geometria reală a celor 22 de străzi din adresa poliției, o taie
+     la tronsonul cerut, și îți dă un fișier <b>trasee.json</b> pe care îl urci în repo.
+     Verifici fiecare stradă pe hartă înainte s-o accepți.</p>
+</header>
+
+<section id="pas1">
+  <button class="btn btn-plin" id="btn-descarca">1 · Descarcă din OpenStreetMap</button>
+  <div id="stare-descarcare">
+    <div id="stare-text">Se pregătește…</div>
+    <div class="bara-progres"><i id="progres"></i></div>
+  </div>
+</section>
+
+<div id="eroare"></div>
+
+<div id="harta"></div>
+
+<section id="zona-lista">
+  <div id="rezumat">
+    <span class="chip c-ok" id="ch-ok">0 gata</span>
+    <span class="chip c-atentie" id="ch-atentie">0 de verificat</span>
+    <span class="chip c-rau" id="ch-rau">0 negăsite</span>
+    <button class="btn-mic" id="btn-toate">Acceptă tot ce e verde</button>
+  </div>
+  <div id="lista"></div>
+</section>
+
+<footer id="subsol">
+  <button class="btn btn-ok" id="btn-export">2 · Descarcă trasee.json</button>
+  <div class="nota" id="nota-export"></div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+"use strict";
+
+/* ══════════════════════════════════════════════════════════════════
+   ȚINTELE — cele 22 de poziții din adresa IPJ Constanța 585056/RDV/CT.
+   `taie` spune între ce străzi trebuie tăiat tronsonul.
+   `CAPAT` = mergi până la capătul străzii (cazul „până la orș. Năvodari").
+   ══════════════════════════════════════════════════════════════════ */
+
+const TINTE = [
+ {crt:'1', nume:'Bd. Mamaia', tronson:'între bd. Aurel Vlaicu și orș. Năvodari', regula:'sezon',
+  osm:'Bulevardul Mamaia', taie:{de_la:'Bulevardul Aurel Vlaicu', pana_la:'CAPAT'}},
+ {crt:'1', nume:'Bd. Mamaia', tronson:'între bd. Aurel Vlaicu și str. Soveja', regula:'sezon',
+  osm:'Bulevardul Mamaia', taie:{de_la:'Bulevardul Aurel Vlaicu', pana_la:'Strada Soveja'}},
+ {crt:'2', nume:'Bd. Tomis', tronson:'între bd. Aurel Vlaicu și str. Traian', regula:'sezon',
+  osm:'Bulevardul Tomis', taie:{de_la:'Bulevardul Aurel Vlaicu', pana_la:'Strada Traian'}},
+ {crt:'3', nume:'Str. Primăverii', tronson:'între str. Soveja și str. Ion Rațiu', regula:'sezon',
+  osm:'Strada Primăverii', taie:{de_la:'Strada Soveja', pana_la:'Strada Ion Rațiu'}},
+
+ {crt:'4', nume:'Str. Soveja', tronson:'între bd. Mamaia și str. Primăverii', regula:'orar',
+  osm:'Strada Soveja', taie:{de_la:'Bulevardul Mamaia', pana_la:'Strada Primăverii'}},
+ {crt:'5', nume:'Bd. 1 Mai', tronson:'între str. Th. Burada și Șos. Mangaliei', regula:'orar',
+  osm:'Bulevardul 1 Mai', taie:{de_la:'Strada Theodor Burada', pana_la:'Șoseaua Mangaliei'}},
+ {crt:'6', nume:'Șos. Mangaliei', tronson:'între bd. 1 Mai și str. Hatman Arbore', regula:'orar',
+  osm:'Șoseaua Mangaliei', taie:{de_la:'Bulevardul 1 Mai', pana_la:'Strada Hatman Arbore'}},
+ {crt:'7', nume:'Str. Chiliei', tronson:'întreg tronsonul', regula:'orar', osm:'Strada Chiliei', taie:null},
+ {crt:'8', nume:'Str. Maramureș', tronson:'întreg tronsonul', regula:'orar', osm:'Strada Maramureș', taie:null},
+ {crt:'9', nume:'Str. Ion Andreescu', tronson:'întreg tronsonul', regula:'orar', osm:'Strada Ion Andreescu', taie:null},
+ {crt:'10', nume:'Str. Războieni', tronson:'întreg tronsonul', regula:'orar', osm:'Strada Războieni', taie:null},
+
+ {crt:'11', nume:'Str. Mihai Viteazu', tronson:'între bd. Ferdinand și str. Traian', regula:'mereu',
+  osm:'Strada Mihai Viteazu', taie:{de_la:'Bulevardul Ferdinand', pana_la:'Strada Traian'}},
+ {crt:'12', nume:'Str. Traian', tronson:'între bd. Tomis și str. Mihai Viteazu', regula:'mereu',
+  osm:'Strada Traian', taie:{de_la:'Bulevardul Tomis', pana_la:'Strada Mihai Viteazu'}},
+ {crt:'13', nume:'Str. Mircea cel Bătrân', tronson:'între str. Dimitrie Cantemir și bd. Ferdinand', regula:'mereu',
+  osm:'Strada Mircea cel Bătrân', taie:{de_la:'Strada Dimitrie Cantemir', pana_la:'Bulevardul Ferdinand'}},
+ {crt:'14', nume:'Str. Mihail Kogălniceanu', tronson:'între bd. Ferdinand și str. Dragoș Vodă', regula:'mereu',
+  osm:'Strada Mihail Kogălniceanu', taie:{de_la:'Bulevardul Ferdinand', pana_la:'Strada Dragoș Vodă'}},
+ {crt:'15', nume:'Str. Termele Romane', tronson:'întreg tronsonul', regula:'mereu', osm:'Strada Termele Romane', taie:null},
+ {crt:'16', nume:'Bd. Regina Elisabeta', tronson:'întreg tronsonul', regula:'mereu', osm:'Bulevardul Regina Elisabeta', taie:null},
+ {crt:'17', nume:'Str. Remus Opreanu', tronson:'întreg tronsonul', regula:'mereu', osm:'Strada Remus Opreanu', taie:null},
+ {crt:'18', nume:'Str. Lebedei', tronson:'întreg tronsonul', regula:'mereu', osm:'Strada Lebedei', taie:null},
+ {crt:'19', nume:'Str. Ecaterina Varga', tronson:'întreg tronsonul', regula:'mereu', osm:'Strada Ecaterina Varga', taie:null},
+ {crt:'20', nume:'Str. Revoluției din 22 Dec. 1989', tronson:'întreg tronsonul', regula:'mereu',
+  osm:'Strada Revoluției din 22 Decembrie 1989', taie:null},
+ {crt:'21', nume:'Str. Marcus Aurelius', tronson:'întreg tronsonul', regula:'mereu', osm:'Strada Marcus Aurelius', taie:null},
+ {crt:'22', nume:'Str. Sulmona', tronson:'întreg tronsonul', regula:'mereu', osm:'Strada Sulmona', taie:null}
+];
+
+/* Dreptunghi: Constanța + stațiunea Mamaia + Năvodari */
+const ZONA = '44.12,28.53,44.34,28.72';
+
+/* Bucăți de nume pentru interogare. Punctul „.” ține locul unui
+   diacritic, în caz că în OSM strada e scrisă fără el. */
+const CAUTA = ['Mamaia','Tomis','Prim.verii','Soveja','1 Mai','Mangaliei','Chiliei','Maramure',
+  'Ion Andreescu','R.zboieni','Mihai Viteazu','Traian','Mircea cel B','Kog.lniceanu','Termele Romane',
+  'Regina Elisabeta','Remus Opreanu','Lebedei','Ecaterina Varga','Revolu.iei','Marcus Aurelius',
+  'Sulmona','Aurel Vlaicu','Ion Ra.iu','Burada','Hatman Arbore','Ferdinand','Cantemir','Drago'];
+
+const SERVERE = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter'
+];
+
+/* ══════════════════════════════════════════════════════════════════
+   POTRIVIREA NUMELOR — „Bd. Tomis" din adresă = „Bulevardul Tomis" în OSM
+   ══════════════════════════════════════════════════════════════════ */
+
+const PREFIXE = /^(strada|str|stradela|bulevardul|bulevard|bdul|b dul|bd|soseaua|sos|aleea|al|piata|calea|intrarea|intr|drumul|splaiul|parcul)\s+/;
+
+function norm(s){
+  let t = (s||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[.,\-–—"']/g,' ')
+    .replace(/\s+/g,' ').trim();
+  for(let i=0;i<3;i++){ const p = t.replace(PREFIXE,''); if(p===t) break; t = p; }
+  return t.trim();
+}
+
+/* Tipul străzii — ca „Strada Lebedei" să nu fie confundată cu „Aleea Lebedei". */
+function tip(s){
+  const t = (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[.,\-]/g,' ').replace(/\s+/g,' ').trim();
+  if(/^(bulevardul|bulevard|bdul|b dul|bd)\s/.test(t)) return 'bd';
+  if(/^(soseaua|sos)\s/.test(t)) return 'sos';
+  if(/^(aleea|al)\s/.test(t)) return 'aleea';
+  if(/^(piata)\s/.test(t)) return 'piata';
+  if(/^(calea)\s/.test(t)) return 'calea';
+  if(/^(intrarea|intr)\s/.test(t)) return 'intrarea';
+  if(/^(splaiul)\s/.test(t)) return 'splaiul';
+  if(/^(strada|str|stradela)\s/.test(t)) return 'str';
+  return '';
+}
+
+function scor(tintaRaw, candidatRaw){
+  const a = norm(tintaRaw), b = norm(candidatRaw);
+  let s;
+  if(a === b){
+    s = 1;
+  }else{
+    const ta = a.split(' '), tb = b.split(' ');
+    let gasite = 0;
+    for(const t of ta) if(tb.some(u => u.startsWith(t) || t.startsWith(u))) gasite++;
+    s = gasite/ta.length - Math.max(0, tb.length - ta.length) * 0.08;
+  }
+  const tA = tip(tintaRaw), tB = tip(candidatRaw);
+  if(tA && tB) s += (tA === tB) ? 0.03 : -0.06;
+  return s;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   GEOMETRIE
+   ══════════════════════════════════════════════════════════════════ */
+
+function metri(a, b){
+  const k = Math.cos(a[0]*Math.PI/180)*111320;
+  return Math.hypot((a[1]-b[1])*k, (a[0]-b[0])*110540);
+}
+function lungime(linie){
+  let s = 0;
+  for(let i=0;i<linie.length-1;i++) s += metri(linie[i], linie[i+1]);
+  return s;
+}
+
+/* Lipește bucățile OSM ale aceleiași străzi în linii continue. */
+function lanturi(cai){
+  const k = p => p[0].toFixed(7) + ',' + p[1].toFixed(7);
+  const ramase = cai.filter(c => c.length >= 2).map(c => c.slice());
+  const out = [];
+  while(ramase.length){
+    let cur = ramase.shift();
+    let extins = true;
+    while(extins){
+      extins = false;
+      for(let i=0;i<ramase.length;i++){
+        const c = ramase[i];
+        if(k(cur[cur.length-1]) === k(c[0]))                  { cur = cur.concat(c.slice(1)); }
+        else if(k(cur[cur.length-1]) === k(c[c.length-1]))    { cur = cur.concat(c.slice().reverse().slice(1)); }
+        else if(k(cur[0]) === k(c[c.length-1]))               { cur = c.slice(0,-1).concat(cur); }
+        else if(k(cur[0]) === k(c[0]))                        { cur = c.slice().reverse().slice(0,-1).concat(cur); }
+        else continue;
+        ramase.splice(i,1); extins = true; break;
+      }
+    }
+    out.push(cur);
+  }
+  return out.sort((a,b) => lungime(b) - lungime(a));
+}
+
+/* Unde atinge `lant` una dintre liniile străzii transversale. */
+function intersectie(lant, lanturiTrans){
+  let best = {idx:-1, dist:Infinity, punct:null};
+  if(!lanturiTrans || !lanturiTrans.length) return best;
+  for(let i=0;i<lant.length;i++){
+    for(const lt of lanturiTrans){
+      for(const p of lt){
+        const d = metri(lant[i], p);
+        if(d < best.dist){ best = {idx:i, dist:d, punct:lant[i]}; }
+      }
+    }
+  }
+  return best;
+}
+
+const PRAG_INTERSECTIE = 45;   // metri
+
+/* ══════════════════════════════════════════════════════════════════
+   STARE
+   ══════════════════════════════════════════════════════════════════ */
+
+let cai = null;              // rezultatul brut de la Overpass
+let indexStrazi = {};        // nume normalizat -> lanțuri
+let rezultate = [];
+let harta = null, stratDesen = null, selectat = -1;
+
+/* ══════════════════════════════════════════════════════════════════
+   1 · DESCĂRCAREA
+   ══════════════════════════════════════════════════════════════════ */
+
+const elStare = document.getElementById('stare-descarcare');
+const elText = document.getElementById('stare-text');
+const elProgres = document.getElementById('progres');
+const elEroare = document.getElementById('eroare');
+
+function spune(t, p){
+  elStare.classList.add('vizibil');
+  elText.innerHTML = t;
+  if(p !== undefined) elProgres.style.width = p + '%';
+}
+function eroare(titlu, text){
+  elEroare.classList.add('vizibil');
+  elEroare.innerHTML = '<b>' + titlu + '</b>' + text;
+}
+
+function interogare(){
+  return '[out:json][timeout:120];\n' +
+    'way["highway"]["name"~"(' + CAUTA.join('|') + ')"](' + ZONA + ');\n' +
+    'out geom;';
+}
+
+async function descarca(){
+  elEroare.classList.remove('vizibil');
+  document.getElementById('btn-descarca').disabled = true;
+  const q = interogare();
+
+  for(let i=0;i<SERVERE.length;i++){
+    const server = SERVERE[i];
+    spune('Cer datele de la serverul ' + (i+1) + ' din ' + SERVERE.length + '…<br>' +
+          '<b>' + server.replace('https://','').split('/')[0] + '</b><br>' +
+          'Poate dura 30–90 de secunde. Nu închide pagina.', 12 + i*8);
+    try{
+      const r = await fetch(server, {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:'data=' + encodeURIComponent(q)
+      });
+      if(!r.ok) throw new Error('Serverul a răspuns cu codul ' + r.status);
+      spune('Se citesc datele…', 55);
+      const date = await r.json();
+      if(!date.elements || !date.elements.length) throw new Error('Răspuns gol');
+      proceseaza(date);
+      return;
+    }catch(e){
+      console.warn(server, e);
+      if(i === SERVERE.length - 1){
+        document.getElementById('btn-descarca').disabled = false;
+        elStare.classList.remove('vizibil');
+        eroare('Nu am putut descărca datele',
+          'Am încercat toate cele ' + SERVERE.length + ' servere OpenStreetMap și niciunul n-a răspuns. ' +
+          'Ultima problemă: ' + e.message + '.<br><br>' +
+          'De obicei înseamnă că serverele sunt aglomerate. Încearcă din nou peste 10–15 minute, ' +
+          'de preferat pe WiFi. Datele tale nu s-au stricat cu nimic — pagina nu a modificat nimic.');
+      }
+    }
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   2 · PROCESAREA
+   ══════════════════════════════════════════════════════════════════ */
+
+function proceseaza(date){
+  spune('Se potrivesc numele străzilor…', 68);
+
+  // grupează căile OSM după numele lor
+  const peNume = {};
+  for(const el of date.elements){
+    if(el.type !== 'way' || !el.geometry || !el.tags || !el.tags.name) continue;
+    const n = el.tags.name;
+    (peNume[n] = peNume[n] || []).push(el.geometry.map(g => [g.lat, g.lon]));
+  }
+  cai = peNume;
+
+  // pentru fiecare nume căutat, alege cele mai bune potriviri OSM
+  function gaseste(numeCautat){
+    let max = -1, alese = [];
+    for(const numeOSM in peNume){
+      const s = scor(numeCautat, numeOSM);
+      if(s > max + 0.005){ max = s; alese = [numeOSM]; }
+      else if(Math.abs(s - max) <= 0.005){ alese.push(numeOSM); }
+    }
+    if(max < 0.75) return {nume:null, lanturi:[], scor:max};
+    let toate = [];
+    for(const n of alese) toate = toate.concat(peNume[n]);
+    return {nume:alese.join(' + '), lanturi:lanturi(toate), scor:max};
+  }
+
+  // memorează străzile transversale, ca să nu le recalculăm
+  const cache = {};
+  const trans = n => cache[n] || (cache[n] = gaseste(n));
+
+  spune('Se taie tronsoanele…', 84);
+  rezultate = TINTE.map(t => proceseazaTinta(t, gaseste(t.osm), trans));
+
+  spune('Gata. Verifică fiecare stradă mai jos.', 100);
+  setTimeout(() => elStare.classList.remove('vizibil'), 2500);
+  document.getElementById('btn-descarca').textContent = 'Descarcă din nou din OpenStreetMap';
+  document.getElementById('btn-descarca').disabled = false;
+  document.getElementById('btn-descarca').className = 'btn btn-gol';
+
+  porneteHarta();
+  deseneazaLista();
+  document.getElementById('zona-lista').classList.add('vizibil');
+  document.getElementById('subsol').classList.add('vizibil');
+  document.getElementById('harta').classList.add('vizibil');
+  setTimeout(() => harta.invalidateSize(), 120);
+}
+
+function proceseazaTinta(t, gasit, trans){
+  const r = {
+    tinta:t, numeOSM:gasit.nume, linii:[], puncte:[], stare:'rau',
+    mesaj:'', detaliu:'', aprobat:false, lungime:0
+  };
+
+  if(!gasit.nume || !gasit.lanturi.length){
+    r.mesaj = 'Nu am găsit strada în OpenStreetMap. Verifică numele pe openstreetmap.org.';
+    return r;
+  }
+
+  // fără tăiere — strada întreagă
+  if(!t.taie){
+    r.linii = gasit.lanturi.filter(l => lungime(l) > 25);
+    r.lungime = r.linii.reduce((s,l) => s + lungime(l), 0);
+    r.stare = 'ok';
+    r.mesaj = 'Strada întreagă, aşa cum cere adresa.';
+    r.detaliu = r.linii.length + ' bucăți · ' + Math.round(r.lungime) + ' m în total';
+    return r;
+  }
+
+  const A = trans(t.taie.de_la);
+  const capat = t.taie.pana_la === 'CAPAT';
+  const B = capat ? null : trans(t.taie.pana_la);
+  const lipsesc = [];
+  if(!A.nume) lipsesc.push(t.taie.de_la);
+  if(!capat && !B.nume) lipsesc.push(t.taie.pana_la);
+
+  if(lipsesc.length){
+    r.linii = gasit.lanturi;
+    r.lungime = r.linii.reduce((s,l) => s + lungime(l), 0);
+    r.stare = 'atentie';
+    r.mesaj = 'Am găsit strada, dar nu și ' + lipsesc.join(' / ') +
+              ', deci n-am putut tăia tronsonul. Ai mai jos strada întreagă — verific-o pe hartă.';
+    r.detaliu = Math.round(r.lungime) + ' m (netăiat)';
+    return r;
+  }
+
+  let taiate = 0;
+  for(const lant of gasit.lanturi){
+    const iA = intersectie(lant, A.lanturi);
+    if(iA.dist > PRAG_INTERSECTIE) continue;
+
+    let bucata;
+    if(capat){
+      const st = lant.slice(0, iA.idx + 1), dr = lant.slice(iA.idx);
+      bucata = lungime(dr) >= lungime(st) ? dr : st;
+      r.puncte.push(iA.punct);
+    }else{
+      const iB = intersectie(lant, B.lanturi);
+      if(iB.dist > PRAG_INTERSECTIE) continue;
+      bucata = lant.slice(Math.min(iA.idx, iB.idx), Math.max(iA.idx, iB.idx) + 1);
+      r.puncte.push(iA.punct, iB.punct);
+    }
+    if(bucata.length >= 2 && lungime(bucata) > 25){ r.linii.push(bucata); taiate++; }
+  }
+
+  if(!taiate){
+    r.linii = gasit.lanturi;
+    r.lungime = r.linii.reduce((s,l) => s + lungime(l), 0);
+    r.stare = 'atentie';
+    r.mesaj = 'Am găsit și strada, și capetele tronsonului, dar nu se ating nicăieri. ' +
+              'Ai strada întreagă — uită-te pe hartă și decide.';
+    r.detaliu = Math.round(r.lungime) + ' m (netăiat)';
+    return r;
+  }
+
+  r.lungime = r.linii.reduce((s,l) => s + lungime(l), 0);
+  r.stare = 'ok';
+  r.mesaj = 'Tăiat automat între cele două intersecții.';
+  r.detaliu = taiate + (taiate === 1 ? ' bucată' : ' bucăți') + ' · ' + Math.round(r.lungime) + ' m' +
+              (taiate > 1 ? ' · probabil bulevard cu două sensuri separate' : '');
+  return r;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   3 · HARTA DE VERIFICARE
+   ══════════════════════════════════════════════════════════════════ */
+
+function porneteHarta(){
+  if(harta) return;
+  harta = L.map('harta', {center:[44.19,28.63], zoom:12, zoomControl:true});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution:'&copy; OpenStreetMap &copy; CARTO', subdomains:'abcd', maxZoom:19
+  }).addTo(harta);
+  stratDesen = L.layerGroup().addTo(harta);
+}
+
+function arata(i){
+  selectat = i;
+  const r = rezultate[i];
+  stratDesen.clearLayers();
+  if(!r.linii.length){ deseneazaLista(); return; }
+
+  const culoare = r.stare === 'ok' ? '#1B8F52' : '#C97A05';
+  const grup = [];
+  for(const l of r.linii){
+    L.polyline(l, {color:'#fff', weight:11, opacity:.9}).addTo(stratDesen);
+    const p = L.polyline(l, {color:culoare, weight:6, opacity:1}).addTo(stratDesen);
+    grup.push(p);
+  }
+  for(const pt of r.puncte){
+    L.marker(pt, {icon:L.divIcon({className:'', html:'<div class="pin-taiere"></div>', iconSize:[13,13], iconAnchor:[6,6]})}).addTo(stratDesen);
+  }
+  harta.fitBounds(L.featureGroup(grup).getBounds(), {padding:[35,35], maxZoom:16});
+  deseneazaLista();
+  document.getElementById('harta').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   4 · LISTA DE VERIFICARE
+   ══════════════════════════════════════════════════════════════════ */
+
+function deseneazaLista(){
+  const gazda = document.getElementById('lista');
+  gazda.innerHTML = rezultate.map((r,i) => {
+    const cls = 'p-' + (r.stare === 'ok' ? 'ok' : r.stare === 'atentie' ? 'atentie' : 'rau');
+    return '<div class="card' + (i === selectat ? ' selectat' : '') + (r.aprobat ? ' aprobat' : '') + '" data-i="' + i + '">' +
+      '<button class="card-sus" data-arata="' + i + '">' +
+        '<span class="crt">' + (r.aprobat ? '✓' : r.tinta.crt) + '</span>' +
+        '<span class="card-txt">' +
+          '<span class="card-nume">' + r.tinta.nume + '</span>' +
+          '<span class="card-tronson">' + r.tinta.tronson + '</span>' +
+          (r.numeOSM ? '<span class="card-osm">OSM: ' + r.numeOSM + '</span>' : '') +
+          '<span class="card-mesaj">' + r.mesaj + '</span>' +
+          (r.detaliu ? '<span class="detaliu">' + r.detaliu + '</span>' : '') +
+        '</span>' +
+        '<span class="punct ' + cls + '"></span>' +
+      '</button>' +
+      (i === selectat ? '<div class="card-actiuni">' +
+        '<button class="act' + (r.aprobat ? ' da' : '') + '" data-ok="' + i + '">' +
+          (r.aprobat ? '✓ Acceptat' : 'Arată bine — acceptă') + '</button>' +
+        '<button class="act nu" data-nu="' + i + '">Lasă-l pe dinafară</button>' +
+      '</div>' : '') +
+    '</div>';
+  }).join('');
+
+  gazda.querySelectorAll('[data-arata]').forEach(b =>
+    b.onclick = () => arata(+b.dataset.arata));
+  gazda.querySelectorAll('[data-ok]').forEach(b =>
+    b.onclick = () => { rezultate[+b.dataset.ok].aprobat = true; urmatorul(+b.dataset.ok); });
+  gazda.querySelectorAll('[data-nu]').forEach(b =>
+    b.onclick = () => { rezultate[+b.dataset.nu].aprobat = false; urmatorul(+b.dataset.nu); });
+
+  actualizeazaRezumat();
+}
+
+function urmatorul(i){
+  const n = rezultate.findIndex((r,j) => j > i && !r.aprobat && r.linii.length);
+  if(n >= 0) arata(n); else deseneazaLista();
+}
+
+function actualizeazaRezumat(){
+  const ok = rezultate.filter(r => r.aprobat).length;
+  const at = rezultate.filter(r => !r.aprobat && r.stare === 'atentie').length;
+  const rau = rezultate.filter(r => r.stare === 'rau').length;
+  document.getElementById('ch-ok').textContent = ok + ' acceptate';
+  document.getElementById('ch-atentie').textContent = at + ' de verificat';
+  document.getElementById('ch-rau').textContent = rau + ' negăsite';
+  document.getElementById('nota-export').textContent =
+    ok === TINTE.length
+      ? 'Toate cele ' + TINTE.length + ' poziții sunt verificate de tine.'
+      : ok + ' din ' + TINTE.length + ' verificate. Restul rămân pe geometria aproximativă și vor fi marcate cu ⚠ în aplicație.';
+}
+
+document.getElementById('btn-toate').onclick = () => {
+  rezultate.forEach(r => { if(r.stare === 'ok') r.aprobat = true; });
+  deseneazaLista();
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   5 · EXPORTUL
+   ══════════════════════════════════════════════════════════════════ */
+
+function rotunjeste(linie){
+  return linie.map(p => [+p[0].toFixed(5), +p[1].toFixed(5)]);
+}
+
+document.getElementById('btn-export').onclick = () => {
+  const strazi = rezultate.filter(r => r.aprobat && r.linii.length).map(r => ({
+    crt:r.tinta.crt, nume:r.tinta.nume, tronson:r.tinta.tronson, regula:r.tinta.regula,
+    osm:r.numeOSM, verificat:true, linii:r.linii.map(rotunjeste)
+  }));
+
+  if(!strazi.length){
+    alert('Nu ai acceptat încă nicio stradă. Apasă pe una din listă, uită-te pe hartă, apoi „Arată bine — acceptă".');
+    return;
+  }
+
+  const continut = JSON.stringify({
+    generat: new Date().toISOString(),
+    sursa: 'OpenStreetMap © colaboratorii OpenStreetMap, licență ODbL',
+    document: {numar:'585056/RDV/CT', data:'05.08.2026', emitent:'IPJ Constanța — Serviciul Siguranță Rutieră'},
+    strazi: strazi
+  }, null, 1);
+
+  const bloburi = new Blob([continut], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(bloburi);
+  a.download = 'trasee.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+};
+
+document.getElementById('btn-descarca').onclick = descarca;
+</script>
+</body>
+</html>
