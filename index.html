@@ -69,6 +69,14 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   padding:3px 9px;border-radius:999px;letter-spacing:.04em;
 }
 body.simulare #simulare-tag{display:inline-block}
+#avertisment{
+  display:none;align-items:center;gap:2px;margin-top:9px;padding:7px 10px;border-radius:9px;
+  background:rgba(244,179,28,.14);border:1px solid rgba(244,179,28,.35);
+  color:var(--chihlimbar);font-size:11.5px;font-weight:600;line-height:1.35;
+}
+#avertisment.vizibil{display:flex}
+#avertisment b{font-family:var(--mono)}
+#avertisment button{margin-left:auto;padding:0 4px;font-size:18px;line-height:1;opacity:.8}
 body.simulare #ceas{color:var(--chihlimbar)}
 
 /* ── Alerta de proximitate (elementul îndrăzneț) ────────────── */
@@ -260,6 +268,10 @@ input[type=range]{width:100%;accent-color:var(--chihlimbar);height:30px}
     <span class="pastila p-liber"><b id="nr-liber">0</b> libere</span>
     <span id="urmatoarea"></span>
   </div>
+  <div id="avertisment">
+    <b id="av-nr">0</b>&nbsp;trasee sunt încă aproximative — rulează unealta
+    <button aria-label="Închide">×</button>
+  </div>
 </header>
 
 <div id="alerta" role="alert" aria-live="assertive">
@@ -370,53 +382,53 @@ const REGULI = {
 
 const STRAZI = [
  {crt:'1',  nume:'Bd. Mamaia',        tronson:'între bd. Aurel Vlaicu și orș. Năvodari', regula:'sezon',
-  linie:[[44.2128,28.6413],[44.2190,28.6330],[44.2280,28.6232],[44.2400,28.6180],[44.2530,28.6146],[44.2660,28.6112],[44.2800,28.6082],[44.2950,28.6062],[44.3080,28.6050]]},
+  linii:[[[44.2128,28.6413],[44.2190,28.6330],[44.2280,28.6232],[44.2400,28.6180],[44.2530,28.6146],[44.2660,28.6112],[44.2800,28.6082],[44.2950,28.6062],[44.3080,28.6050]]]},
  {crt:'1',  nume:'Bd. Mamaia',        tronson:'între bd. Aurel Vlaicu și str. Soveja', regula:'sezon',
-  linie:[[44.2128,28.6413],[44.2090,28.6424],[44.2045,28.6434],[44.2010,28.6440]]},
+  linii:[[[44.2128,28.6413],[44.2090,28.6424],[44.2045,28.6434],[44.2010,28.6440]]]},
  {crt:'2',  nume:'Bd. Tomis',         tronson:'între bd. Aurel Vlaicu și str. Traian', regula:'sezon',
-  linie:[[44.2085,28.6300],[44.2020,28.6336],[44.1950,28.6382],[44.1880,28.6440],[44.1820,28.6490],[44.1770,28.6530],[44.1740,28.6556],[44.1726,28.6570]]},
+  linii:[[[44.2085,28.6300],[44.2020,28.6336],[44.1950,28.6382],[44.1880,28.6440],[44.1820,28.6490],[44.1770,28.6530],[44.1740,28.6556],[44.1726,28.6570]]]},
  {crt:'3',  nume:'Str. Primăverii',   tronson:'între str. Soveja și str. Ion Rațiu', regula:'sezon',
-  linie:[[44.2005,28.6300],[44.2050,28.6286],[44.2100,28.6270],[44.2140,28.6256]]},
+  linii:[[[44.2005,28.6300],[44.2050,28.6286],[44.2100,28.6270],[44.2140,28.6256]]]},
 
  {crt:'4',  nume:'Str. Soveja',       tronson:'între bd. Mamaia și str. Primăverii', regula:'orar',
-  linie:[[44.2010,28.6440],[44.2008,28.6390],[44.2007,28.6342],[44.2005,28.6300]]},
+  linii:[[[44.2010,28.6440],[44.2008,28.6390],[44.2007,28.6342],[44.2005,28.6300]]]},
  {crt:'5',  nume:'Bd. 1 Mai',         tronson:'între str. Th. Burada și Șos. Mangaliei', regula:'orar',
-  linie:[[44.1745,28.6120],[44.1720,28.6165],[44.1695,28.6206],[44.1670,28.6240]]},
+  linii:[[[44.1745,28.6120],[44.1720,28.6165],[44.1695,28.6206],[44.1670,28.6240]]]},
  {crt:'6',  nume:'Șos. Mangaliei',    tronson:'între bd. 1 Mai și str. Hatman Arbore', regula:'orar',
-  linie:[[44.1670,28.6240],[44.1622,28.6250],[44.1572,28.6259],[44.1520,28.6266]]},
+  linii:[[[44.1670,28.6240],[44.1622,28.6250],[44.1572,28.6259],[44.1520,28.6266]]]},
  {crt:'7',  nume:'Str. Chiliei',      tronson:'întreg tronsonul', regula:'orar',
-  linie:[[44.1965,28.6296],[44.1990,28.6256],[44.2010,28.6220]]},
+  linii:[[[44.1965,28.6296],[44.1990,28.6256],[44.2010,28.6220]]]},
  {crt:'8',  nume:'Str. Maramureș',    tronson:'întreg tronsonul', regula:'orar',
-  linie:[[44.1930,28.6250],[44.1955,28.6215],[44.1975,28.6181]]},
+  linii:[[[44.1930,28.6250],[44.1955,28.6215],[44.1975,28.6181]]]},
  {crt:'9',  nume:'Str. Ion Andreescu',tronson:'întreg tronsonul', regula:'orar',
-  linie:[[44.1905,28.6350],[44.1930,28.6311],[44.1950,28.6276]]},
+  linii:[[[44.1905,28.6350],[44.1930,28.6311],[44.1950,28.6276]]]},
  {crt:'10', nume:'Str. Războieni',    tronson:'întreg tronsonul', regula:'orar',
-  linie:[[44.1870,28.6390],[44.1895,28.6351],[44.1915,28.6316]]},
+  linii:[[[44.1870,28.6390],[44.1895,28.6351],[44.1915,28.6316]]]},
 
  {crt:'11', nume:'Str. Mihai Viteazu',tronson:'între bd. Ferdinand și str. Traian', regula:'mereu',
-  linie:[[44.1785,28.6480],[44.1760,28.6505],[44.1738,28.6528],[44.1722,28.6548]]},
+  linii:[[[44.1785,28.6480],[44.1760,28.6505],[44.1738,28.6528],[44.1722,28.6548]]]},
  {crt:'12', nume:'Str. Traian',       tronson:'între bd. Tomis și str. Mihai Viteazu', regula:'mereu',
-  linie:[[44.1730,28.6580],[44.1715,28.6556],[44.1700,28.6531],[44.1686,28.6506]]},
+  linii:[[[44.1730,28.6580],[44.1715,28.6556],[44.1700,28.6531],[44.1686,28.6506]]]},
  {crt:'13', nume:'Str. Mircea cel Bătrân', tronson:'între str. Dimitrie Cantemir și bd. Ferdinand', regula:'mereu',
-  linie:[[44.1720,28.6480],[44.1750,28.6466],[44.1780,28.6451]]},
+  linii:[[[44.1720,28.6480],[44.1750,28.6466],[44.1780,28.6451]]]},
  {crt:'14', nume:'Str. Mihail Kogălniceanu', tronson:'între bd. Ferdinand și str. Dragoș Vodă', regula:'mereu',
-  linie:[[44.1790,28.6441],[44.1815,28.6426],[44.1840,28.6411]]},
+  linii:[[[44.1790,28.6441],[44.1815,28.6426],[44.1840,28.6411]]]},
  {crt:'15', nume:'Str. Termele Romane', tronson:'întreg tronsonul', regula:'mereu',
-  linie:[[44.1735,28.6595],[44.1745,28.6606]]},
+  linii:[[[44.1735,28.6595],[44.1745,28.6606]]]},
  {crt:'16', nume:'Bd. Regina Elisabeta', tronson:'întreg tronsonul', regula:'mereu',
-  linie:[[44.1720,28.6601],[44.1745,28.6600],[44.1770,28.6596],[44.1790,28.6586]]},
+  linii:[[[44.1720,28.6601],[44.1745,28.6600],[44.1770,28.6596],[44.1790,28.6586]]]},
  {crt:'17', nume:'Str. Remus Opreanu', tronson:'întreg tronsonul', regula:'mereu',
-  linie:[[44.1755,28.6570],[44.1760,28.6591]]},
+  linii:[[[44.1755,28.6570],[44.1760,28.6591]]]},
  {crt:'18', nume:'Str. Lebedei',      tronson:'întreg tronsonul', regula:'mereu',
-  linie:[[44.1765,28.6555],[44.1772,28.6576]]},
+  linii:[[[44.1765,28.6555],[44.1772,28.6576]]]},
  {crt:'19', nume:'Str. Ecaterina Varga', tronson:'întreg tronsonul', regula:'mereu',
-  linie:[[44.1748,28.6560],[44.1755,28.6581]]},
+  linii:[[[44.1748,28.6560],[44.1755,28.6581]]]},
  {crt:'20', nume:'Str. Revoluției din 22 Dec. 1989', tronson:'întreg tronsonul', regula:'mereu',
-  linie:[[44.1780,28.6561],[44.1790,28.6581]]},
+  linii:[[[44.1780,28.6561],[44.1790,28.6581]]]},
  {crt:'21', nume:'Str. Marcus Aurelius', tronson:'întreg tronsonul', regula:'mereu',
-  linie:[[44.1740,28.6581],[44.1748,28.6599]]},
+  linii:[[[44.1740,28.6581],[44.1748,28.6599]]]},
  {crt:'22', nume:'Str. Sulmona',      tronson:'întreg tronsonul', regula:'mereu',
-  linie:[[44.1728,28.6588],[44.1738,28.6603]]}
+  linii:[[[44.1728,28.6588],[44.1738,28.6603]]]}
 ];
 
 /* ═══════════════════════════════════════════════════════════════
@@ -492,20 +504,48 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
 
 const stratStrazi = L.layerGroup().addTo(harta);
 let momentAfisat = null;      // null = live
-let pozitiaMea = null, marcajEu = null, cercEu = null, modTraseu = false, ceasGPS = null;
+let pozitiaMea = null, marcajEu = null, modTraseu = false, ceasGPS = null;
 let alertaInchisaPentru = null;
 
-STRAZI.forEach((s,i)=>{
-  s.id = i;
-  s.casing = L.polyline(s.linie, {color:'#0B0E12', weight:11, opacity:.85, lineCap:'round', lineJoin:'round'});
-  s.linia  = L.polyline(s.linie, {
-    color:'#888', weight:6, opacity:.95, lineCap:'round', lineJoin:'round',
-    dashArray:REGULI[s.regula].stil
+/* Aduce geometria reală produsă de unealtă. Dacă fişierul lipseşte,
+   rămân coordonatele aproximative — dar spunem asta pe faţă. */
+async function incarcaTrasee(){
+  let aduse = 0;
+  try{
+    const r = await fetch('trasee.json?v=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) throw new Error('cod ' + r.status);
+    const d = await r.json();
+    for(const t of (d.strazi || [])){
+      const s = STRAZI.find(x => x.crt === t.crt && x.tronson === t.tronson);
+      if(s && Array.isArray(t.linii) && t.linii.length){
+        s.linii = t.linii; s.verificat = true; aduse++;
+      }
+    }
+  }catch(e){
+    console.warn('trasee.json nu s-a încărcat:', e.message);
+  }
+  return aduse;
+}
+
+function construiesteStraturi(){
+  stratStrazi.clearLayers();
+  STRAZI.forEach((s,i)=>{
+    s.id = i;
+    s.fire = [];
+    s.linii.forEach(linie=>{
+      stratStrazi.addLayer(L.polyline(linie, {color:'#0B0E12', weight:11, opacity:.85, lineCap:'round', lineJoin:'round'}));
+      const fir = L.polyline(linie, {
+        color:'#888', weight:6, opacity:.95, lineCap:'round', lineJoin:'round',
+        dashArray:REGULI[s.regula].stil
+      });
+      stratStrazi.addLayer(fir);
+      s.fire.push(fir);
+      const atingere = L.polyline(linie, {color:'#fff', weight:24, opacity:0});
+      atingere.on('click', ()=> deschideFisa(s));
+      stratStrazi.addLayer(atingere);
+    });
   });
-  s.atingere = L.polyline(s.linie, {color:'#fff', weight:24, opacity:0});
-  s.atingere.on('click', ()=> deschideFisa(s));
-  stratStrazi.addLayer(s.casing); stratStrazi.addLayer(s.linia); stratStrazi.addLayer(s.atingere);
-});
+}
 
 /* ═══════════════════════════════════════════════════════════════
    4. REÎMPROSPĂTARE
@@ -529,7 +569,8 @@ function reimprospateaza(){
   STRAZI.forEach(s=>{
     s.stare = stare(s, d);
     if(s.stare.interzis) nrStop++;
-    s.linia.setStyle({color:culoare(s.stare)});
+    const c = culoare(s.stare);
+    s.fire.forEach(f => f.setStyle({color:c}));
     if(s.stare.minutePana !== null && s.stare.minutePana <= 180){
       schimbari.push({min:s.stare.minutePana, devine:s.stare.devine});
     }
@@ -589,7 +630,7 @@ function deseneazaLista(){
       : '<span class="contor">' + (st.devine === 'interzis' ? '↓ ' : '↑ ') + textDurata(st.minutePana) + '</span>';
     return '<button class="rand" data-id="' + s.id + '">' +
       '<span class="nr">' + s.crt + '</span>' +
-      '<span class="rand-txt"><span class="rand-nume">' + s.nume + '</span>' +
+      '<span class="rand-txt"><span class="rand-nume">' + s.nume + (s.verificat ? '' : ' <span style="color:var(--chihlimbar)">⚠</span>') + '</span>' +
       '<span class="rand-tronson">' + s.tronson + '</span></span>' +
       '<span class="rand-stare"><span class="eticheta ' + cls + '">' + txt + '</span>' + contor + '</span>' +
     '</button>';
@@ -649,10 +690,9 @@ document.getElementById('fisa').addEventListener('click', e=>{
 document.getElementById('f-arata').onclick = ()=>{
   document.getElementById('fisa').classList.remove('vizibil');
   document.getElementById('panou').classList.remove('deschis');
-  harta.fitBounds(stradaDeschisa.linia.getBounds(), {padding:[70,70], maxZoom:16});
-  const original = stradaDeschisa.linia.options.weight;
-  stradaDeschisa.linia.setStyle({weight:11});
-  setTimeout(()=> stradaDeschisa.linia.setStyle({weight:original}), 1600);
+  harta.fitBounds(L.featureGroup(stradaDeschisa.fire).getBounds(), {padding:[70,70], maxZoom:16});
+  stradaDeschisa.fire.forEach(f => f.setStyle({weight:11}));
+  setTimeout(()=> stradaDeschisa.fire.forEach(f => f.setStyle({weight:6})), 1600);
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -726,8 +766,10 @@ function verificaProximitatea(){
   let cea = null, dMin = Infinity;
   STRAZI.forEach(s=>{
     if(!s.stare || !s.stare.interzis) return;
-    const d = distantaLaLinie(pozitiaMea.lat, pozitiaMea.lng, s.linie);
-    if(d < dMin){ dMin = d; cea = s; }
+    for(const linie of s.linii){
+      const d = distantaLaLinie(pozitiaMea.lat, pozitiaMea.lng, linie);
+      if(d < dMin){ dMin = d; cea = s; }
+    }
   });
 
   if(cea && dMin <= PRAG_METRI){
@@ -800,7 +842,18 @@ document.getElementById('btn-legenda').onclick = ()=>{
   document.getElementById('btn-legenda').classList.toggle('activ');
 };
 
-reimprospateaza();
+(async function porneste(){
+  await incarcaTrasee();
+  construiesteStraturi();
+  const neverificate = STRAZI.filter(s => !s.verificat).length;
+  if(neverificate){
+    const b = document.getElementById('avertisment');
+    document.getElementById('av-nr').textContent = neverificate;
+    b.classList.add('vizibil');
+    b.querySelector('button').onclick = ()=> b.classList.remove('vizibil');
+  }
+  reimprospateaza();
+})();
 setInterval(()=>{ if(!momentAfisat) reimprospateaza(); }, 15000);
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && !momentAfisat) reimprospateaza(); });
 harta.whenReady(()=> setTimeout(()=> document.getElementById('incarcare').style.display = 'none', 350));

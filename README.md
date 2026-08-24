@@ -3,133 +3,150 @@
 Constanța și Năvodari. Arată, la ora curentă, pe ce străzi ai voie și pe ce străzi nu,
 conform adresei IPJ Constanța nr. 585056/RDV/CT din 05.08.2026.
 
----
+Trei fișiere:
 
-## Ce face
-
-| | |
+| Fișier | Ce e |
 |---|---|
-| **Bandă de stare** | Ceas live, câte străzi sunt interzise acum, și — cel mai util — **peste cât timp se schimbă**: „În 15 min se deschid 7 străzi”. |
-| **Hartă colorată** | Roșu = interzis acum. Chihlimbar = se închide în mai puțin de 45 min. Verde = liber. Stilul liniei arată tipul regulii (continuu = permanent, întrerupt = ore de vârf, punctat = sezon), ca să se distingă și pe lumină puternică. |
-| **Mod traseu** | Urmărește GPS-ul și dă alertă roșie + vibrație când te apropii la sub 120 m de o stradă interzisă **în acel moment**. |
-| **Verifică altă oră** | Alegi o dată și o oră și vezi harta așa cum va arăta atunci — pentru planificarea ședințelor. |
-| **Fișa străzii** | Numărul din adresa poliției, tronsonul exact, regula, articolul de lege și sancțiunea. |
-
-Totul se calculează în telefon. Nu există server, nu există bază de date, nu se trimite nimic nicăieri.
+| `index.html` | Aplicația. Asta o deschizi când ești pe traseu. |
+| `unealta.html` | Unealtă folosită rar: extrage traseele reale din OpenStreetMap. |
+| `trasee.json` | Geometria verificată de tine. O produce unealta. |
 
 ---
 
-## ⚠ Ce trebuie făcut înainte de a-l da altora
+## Ce ai de făcut acum, pas cu pas
 
-**1. Verifică geometria străzilor.**
-Coordonatele din `index.html` sunt trasate aproximativ de mine, din cunoștințe generale
-despre Constanța. Arată corect ca formă, dar **nu sunt precise la nivel de stradă** —
-inacceptabil pentru un instrument care te apără de amendă.
+### Pasul 1 — Urcă cele două fișiere
 
-Rulează o dată `unelte/genereaza-geometrie.py` (are instrucțiuni în el). Descarcă
-traseele reale din OpenStreetMap. Apoi taie fiecare stradă la tronsonul cerut de adresă
-(ex. Bd. Tomis doar între Aurel Vlaicu și Traian) și lipește liniile în lista `STRAZI`.
+În repo-ul `ias-auto/trasee`: **Add file → Upload files** → alege `index.html` și
+`unealta.html` → **Commit changes**.
 
-Alternativ, dacă vrei să eviți scriptul: deschide [geojson.io](https://geojson.io),
-trasează cu mâna fiecare tronson peste hartă, exportă și copiază coordonatele.
-Durează o seară, dar iese exact.
+`index.html` îl înlocuiește pe cel vechi. E în regulă, asta vrem.
 
-**2. Schimbă furnizorul de plăci de hartă** (vezi mai jos). Cel din fișier acum e bun
-pentru testare, nu pentru 500 de oameni.
+Așteaptă un minut ca GitHub Pages să publice.
 
-**3. Pune un mesaj scurt de responsabilitate**: harta e un ajutor, adresa poliției e sursa.
+### Pasul 2 — Deschide unealta
+
+**https://ias-auto.github.io/trasee/unealta.html**
+
+Deschide-o de aici, nu din Descărcări. Are nevoie de o adresă https ca să poată vorbi
+cu serverele OpenStreetMap.
+
+Fii pe WiFi. Durează mai mult pe date mobile și e păcat de trafic.
+
+### Pasul 3 — Apasă „Descarcă din OpenStreetMap”
+
+Durează între 30 și 90 de secunde. Nu închide pagina.
+
+Unealta cere o singură dată toate străzile din zonă, apoi lucrează local:
+- găsește fiecare stradă din adresă („Bd. Tomis” → „Bulevardul Tomis” în OSM);
+- lipește bucățile în care OSM o are împărțită, într-o linie continuă;
+- caută intersecțiile cu străzile din coloana „Tronson” și **taie exact între ele**
+  (Bd. Tomis doar între Aurel Vlaicu și Traian, nu tot bulevardul).
+
+Dacă serverele sunt aglomerate, încearcă singură alte două servere. Dacă nici acelea
+nu răspund, îți spune clar și încerci peste un sfert de oră. Nimic nu se strică.
+
+### Pasul 4 — Verifică fiecare stradă
+
+Aici e partea importantă și **de aceea unealta nu face totul singură**.
+
+Fiecare din cele 23 de poziții are un bulinuț:
+
+- **verde** — a găsit strada și a tăiat tronsonul;
+- **galben** — a găsit strada, dar nu a putut tăia tronsonul (îți dă strada întreagă);
+- **roșu** — nu a găsit strada în OpenStreetMap.
+
+Apeși pe una → se desenează pe hartă, cu **buline mov în punctele unde a tăiat**.
+Te uiți: linia stă pe stradă? Începe și se termină unde scrie în adresă?
+
+- Dacă da → **„Arată bine — acceptă”**. Trece automat la următoarea.
+- Dacă nu → **„Lasă-l pe dinafară”**.
+
+Butonul **„Acceptă tot ce e verde”** merge rapid peste toate cele verzi. **Uită-te
+totuși peste ele** — sunt cinci minute care te scutesc de o amendă.
+
+Sub fiecare stradă scrie și lungimea în metri. E cea mai bună verificare rapidă:
+dacă Bd. Tomis între Aurel Vlaicu și Traian îți dă 4 km, e corect. Dacă îți dă 200 m,
+ceva a tăiat greșit.
+
+Când o stradă apare în două bucăți, de obicei e un bulevard cu sensuri separate în OSM.
+E normal și e chiar mai corect așa.
+
+### Pasul 5 — Descarcă `trasee.json`
+
+Butonul verde de jos. Poți apăsa oricând, chiar dacă n-ai acceptat toate — pozițiile
+neacceptate rămân pe geometria aproximativă și vor fi marcate în aplicație.
+
+### Pasul 6 — Urcă `trasee.json` în repo
+
+Aceeași rutină: **Add file → Upload files → Commit changes**.
+
+### Pasul 7 — Deschide aplicația
+
+**https://ias-auto.github.io/trasee/**
+
+Bara galbenă de sus îți spune câte trasee sunt încă aproximative. Când ai acceptat toate
+cele 23, bara dispare și niciun ⚠ nu mai apare în listă.
 
 ---
 
-## Unde îl pui ca să nu crape la 500 de utilizatori
+## De ce e construită așa
 
-### Aplicația în sine: nicio problemă
+**Aplicația nu vorbește niciodată cu OpenStreetMap.** Citește `trasee.json` din repo și
+atât. Documentația Overpass spune apăsat că a folosi serverele lor publice ca backend
+pentru o aplicație este exact felul de folosire care duce la blocare — dar că o cerere
+pusă manual de un om este extrem de puțin probabil să deranjeze pe cineva.
 
-Cifrele, pe scurt: `index.html` are ~28 KB, comprimat ~8 KB. La 500 de instructori care
-deschid aplicația de 10 ori pe zi înseamnă **~1,5 GB pe lună**. Limita GitHub Pages e
-100 GB/lună. Ești la 1,5% din ea.
+Deci: tu, o dată, ceri. Cei 500 de utilizatori nu cer niciodată nimic.
 
-„Simultan” nu înseamnă nimic aici, pentru că nu există server care să calculeze ceva.
-Un fișier static livrat de un CDN la 500 de oameni deodată este un non-eveniment —
-aceleași servere livrează fișiere la milioane de oameni. **Ce te-ar putea da jos e o
-bază de date sau un backend. Tu nu ai niciunul, intenționat.**
+**Nimic nu se pierde în tăcere.** Dacă `trasee.json` lipsește sau e stricat, aplicația
+nu se blochează și nu se preface că e în regulă — merge pe coordonatele aproximative
+și îți spune pe față, în bara galbenă, câte trasee nu sunt verificate. Am testat exact
+scenariul ăsta.
 
-| Găzduire | Preț | Limită de trafic | Observație |
-|---|---|---|---|
-| **GitHub Pages** | gratuit | ~100 GB/lună (limită de curtoazie) | Îl ai deja configurat pentru IAS. Cea mai simplă variantă. |
-| **Cloudflare Pages** | gratuit | **fără limită de trafic** | Recomandarea mea. CDN mai rapid în România, poți adăuga R2 pentru hărți, control pe antete. |
-| Netlify | gratuit | 100 GB/lună | Bun, dar fără avantaj față de primele două. |
-
-**Recomandare: pune-l pe GitHub (ca sursă) și conectează Cloudflare Pages la repo.**
-Cloudflare publică automat la fiecare commit, tu lucrezi în continuare la fel ca acum.
-Dacă vrei simplitate maximă, GitHub Pages singur e suficient.
-
-### Plăcile de hartă: aici e adevărata problemă
-
-Asta e singura resursă partajată și singurul lucru care chiar cedează la scară.
-O sesiune de condus cu mișcat pe hartă înseamnă 150–400 de plăci. La 500 de instructori,
-2 sesiuni pe zi: **~7 milioane de plăci pe lună**.
-
-Serverul public OpenStreetMap **interzice explicit** acest tip de folosire, și te
-blochează. Nivelurile gratuite obișnuite (MapTiler 100 mii/lună, Stadia 200 mii/lună)
-se termină în câteva ore la volumul ăsta.
-
-Trei variante care rezistă:
-
-**A. Protomaps + PMTiles pe Cloudflare R2** — cea mai bună la scară
-Un singur fișier `.pmtiles` cu județul Constanța (30–80 MB), pus pe Cloudflare R2.
-Browserul cere doar bucata de octeți de care are nevoie, prin range requests.
-R2 nu percepe **nimic** pentru trafic de ieșire, iar nivelul gratuit acoperă 10 GB
-stocare și 10 milioane de citiri pe lună. Practic: gratuit, la orice număr de utilizatori.
-Necesită înlocuirea Leaflet cu MapLibre GL, sau adăugarea pluginului `protomaps-leaflet`.
-
-**B. Plăci proprii, pre-generate, lângă aplicație** — cea mai simplă
-Generezi o singură dată plăcile PNG doar pentru dreptunghiul Constanța–Năvodari și doar
-pentru zoom 12–16. Ies câteva zeci de mii de fișiere, 100–300 MB. Le pui în repo,
-lângă `index.html`. De acolo încolo sunt fișiere statice pe CDN: gratuite, pentru
-totdeauna, imposibil de suprasolicitat. Dezavantaj: repo mare, actualizare manuală.
-
-**C. Fără plăci deloc** — varianta la care merită să te gândești serios
-Tu nu ai nevoie de clădiri, magazine și parcuri. Ai nevoie de **liniile străzilor**.
-Descarci o dată rețeaua de străzi a Constanței din OpenStreetMap ca GeoJSON
-(2–5 MB comprimat), o pui în aplicație și o desenezi cu Leaflet pe canvas.
-Zero cereri de rețea după prima încărcare, **funcționează complet offline**, arată
-distinct — și scapi de orice furnizor extern și de orice factură viitoare.
-Pentru o aplicație de instructor auto, e probabil răspunsul corect.
-
-**În plus, indiferent de variantă: service worker.**
-Îl ai deja în IAS. Dacă pui plăcile în cache, traficul scade cu 80–90% după prima zi,
-pentru că fiecare instructor conduce mereu prin aceleași zone. Și aplicația merge
-și când semnalul e prost — ceea ce contează în mașină.
+**Tu ai ultimul cuvânt.** Unealta propune, tu accepți. O stradă neacceptată nu ajunge
+niciodată în fișier.
 
 ---
 
 ## Când poliția trimite o adresă nouă
 
-Editezi un singur loc: lista `STRAZI` de la începutul lui `index.html`. Fiecare intrare are
-`crt` (numărul din adresă), `nume`, `tronson`, `regula` și `linie` (coordonatele).
-Regulile disponibile sunt `sezon`, `orar` și `mereu`. Dacă apar alte intervale orare,
-schimbi constanta `INTERVALE`. Commit, și gata — toți utilizatorii văd noua listă
-la următoarea deschidere.
+1. În `unealta.html`, lista `TINTE` de la început: adaugi, scoți sau modifici poziții.
+   Fiecare are `crt`, `nume`, `tronson`, `regula` (`sezon` / `orar` / `mereu`),
+   `osm` (numele complet așa cum e în OpenStreetMap) și `taie`.
+2. Aceeași listă se modifică și în `index.html`, în `STRAZI`.
+3. Rulezi unealta din nou, urci noul `trasee.json`.
 
-Adresa cere și ca școlile să trimită **propuneri de includere/excludere** de străzi.
-Dacă strângi din trafic real ce străzi chiar sunt problematice, ai un argument bun de trimis
-înapoi la Serviciul Siguranță Rutieră — și ai un motiv în plus ca ceilalți instructori să
-folosească aplicația.
+Dacă apar alte intervale orare, schimbi `INTERVALE` în `index.html`.
 
----
-
-## Cum se leagă de IAS
-
-Trei variante, în ordinea efortului:
-
-1. **Link separat.** Buton în IAS → deschide harta. Zero riscuri pentru aplicația existentă.
-2. **Al doilea ecran în IAS.** Muți conținutul într-o filă nouă. Leaflet se încarcă doar când intri pe ea.
-3. **Legat de calendar.** Când programezi o ședință la o anumită oră, IAS îți arată ce e
-   interzis în intervalul acela și te avertizează dacă locul de întâlnire e pe o stradă închisă.
-   Asta ar fi funcția pe care n-o are nimeni altcineva.
+Adresa cere școlilor și **propuneri de includere/excludere** de străzi. Dacă strângi din
+traseu real ce străzi chiar sunt problematice, ai un argument bun de trimis înapoi la
+Serviciul Siguranță Rutieră.
 
 ---
 
-*Sursa datelor: IPJ Constanța, Serviciul Siguranță Rutieră, adresa nr. 585056/RDV/CT din 05.08.2026.
-Hartă și date geografice: © colaboratorii OpenStreetMap, licență ODbL.*
+## Când o dai la mulți oameni
+
+Aplicația în sine nu e o problemă: e un fișier static de ~11 KB comprimat. 500 de
+instructori × 10 deschideri pe zi ≈ 1,5 GB/lună, adică 1,5% din limita GitHub Pages.
+Nu există server care să pice, pentru că nu există server.
+
+Ce trebuie schimbat înainte sunt **plăcile de hartă** — singura resursă partajată. La
+volumul ăla se termină orice nivel gratuit obișnuit. Variante, de la cea mai bună la scară:
+
+1. **Protomaps + PMTiles pe Cloudflare R2.** Un fișier cu județul Constanța (30–80 MB).
+   R2 nu percepe nimic pentru trafic de ieșire. Practic gratuit la orice număr de utilizatori.
+2. **Plăci proprii, pre-generate**, doar Constanța–Năvodari, zoom 12–16, puse lângă
+   `index.html`. Fișiere statice pe CDN: gratuite pentru totdeauna.
+3. **Fără plăci deloc.** Tu ai nevoie de linii de străzi, nu de clădiri și magazine.
+   Descarci o dată rețeaua ca GeoJSON și o desenezi singur. Zero cereri de rețea,
+   merge complet offline în mașină, nicio factură viitoare. Pentru cazul tău,
+   probabil răspunsul corect.
+
+Plus un service worker, ca la IAS: traficul scade cu 80–90% după prima zi, pentru că
+fiecare instructor conduce prin aceleași zone.
+
+---
+
+*Sursa restricțiilor: IPJ Constanța, Serviciul Siguranță Rutieră, adresa nr. 585056/RDV/CT
+din 05.08.2026. Date geografice: © colaboratorii OpenStreetMap, licență ODbL.*
