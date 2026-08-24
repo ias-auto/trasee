@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0E1116">
+<title>IAS Trasee — străzi interzise instruirii · Constanța & Năvodari</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+/* ────────────────────────────────────────────────────────────
+   IAS Trasee — paletă „asfalt noaptea"
+   ──────────────────────────────────────────────────────────── */
+:root{
+  --asfalt:#0E1116;
+  --asfalt-2:#161C25;
+  --asfalt-3:#1E2731;
+  --marcaj:#E8EDF2;
+  --gri:#8A96A3;
+  --chihlimbar:#F4B31C;
+  --stop:#E23B3B;
+  --liber:#2FBF71;
+  --contur:#2A3440;
+  --mono:ui-monospace,"SF Mono","Roboto Mono","DejaVu Sans Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --sus:env(safe-area-inset-top,0px);
+  --jos:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;overscroll-behavior:none}
+body{
+  background:var(--asfalt);color:var(--marcaj);font-family:var(--sans);
+  font-size:15px;line-height:1.45;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--chihlimbar);outline-offset:2px;border-radius:6px}
+
+/* ── Banda de stare (semnătura ecranului) ───────────────────── */
+#banda{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  padding:calc(var(--sus) + 10px) 14px 11px;
+  background:linear-gradient(180deg,rgba(14,17,22,.98) 0%,rgba(14,17,22,.94) 70%,rgba(14,17,22,0) 100%);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+#banda-sus{display:flex;align-items:baseline;gap:10px}
+.marca{
+  font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--chihlimbar);font-weight:700;white-space:nowrap;
+}
+.marca span{color:var(--gri);font-weight:400}
+#ceas{
+  margin-left:auto;font-family:var(--mono);font-size:26px;font-weight:700;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1;
+}
+#data-mica{font-family:var(--mono);font-size:10.5px;color:var(--gri);letter-spacing:.06em;text-transform:uppercase}
+#banda-jos{display:flex;align-items:center;gap:9px;margin-top:9px;flex-wrap:wrap}
+.pastila{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 8px;
+  border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;
+}
+.pastila b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.p-stop{background:rgba(226,59,59,.16);color:#FF8A8A;border:1px solid rgba(226,59,59,.35)}
+.p-liber{background:rgba(47,191,113,.14);color:#7EE2AC;border:1px solid rgba(47,191,113,.3)}
+#urmatoarea{
+  font-size:12.5px;color:var(--gri);display:flex;align-items:center;gap:6px;
+}
+#urmatoarea b{color:var(--chihlimbar);font-family:var(--mono);font-variant-numeric:tabular-nums}
+#simulare-tag{
+  display:none;background:var(--chihlimbar);color:#0E1116;font-size:11px;font-weight:800;
+  padding:3px 9px;border-radius:999px;letter-spacing:.04em;
+}
+body.simulare #simulare-tag{display:inline-block}
+body.simulare #ceas{color:var(--chihlimbar)}
+
+/* ── Alerta de proximitate (elementul îndrăzneț) ────────────── */
+#alerta{
+  position:fixed;top:calc(var(--sus) + 4px);left:8px;right:8px;z-index:1400;
+  background:var(--stop);color:#fff;border-radius:16px;padding:14px 16px;
+  box-shadow:0 12px 40px rgba(226,59,59,.45);
+  display:none;animation:intra .28s cubic-bezier(.2,.9,.3,1.2);
+}
+#alerta.vizibil{display:block}
+@keyframes intra{from{transform:translateY(-22px);opacity:0}to{transform:none;opacity:1}}
+#alerta .cap{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.85;font-weight:700}
+#alerta .strada{font-size:22px;font-weight:800;line-height:1.15;margin:3px 0 2px;letter-spacing:-.01em}
+#alerta .sub{font-size:13px;opacity:.92}
+#alerta .inchide{position:absolute;top:8px;right:10px;font-size:22px;line-height:1;opacity:.8;padding:4px 8px}
+@media (prefers-reduced-motion:reduce){#alerta{animation:none}}
+
+/* ── Harta ──────────────────────────────────────────────────── */
+#harta{position:absolute;inset:0;background:var(--asfalt-2)}
+.leaflet-container{background:#10151b;font-family:var(--sans)}
+.leaflet-control-attribution{
+  background:rgba(14,17,22,.8)!important;color:var(--gri)!important;font-size:9.5px!important;
+}
+.leaflet-control-attribution a{color:var(--gri)!important}
+.leaflet-control-zoom{display:none}
+.eticheta-strada{
+  background:rgba(14,17,22,.9);border:1px solid var(--contur);border-radius:6px;
+  padding:2px 6px;font-size:11px;font-weight:700;white-space:nowrap;color:var(--marcaj);
+  font-family:var(--mono);
+}
+.pin-eu{
+  width:18px;height:18px;border-radius:50%;background:#3B82F6;
+  border:3px solid #fff;box-shadow:0 0 0 6px rgba(59,130,246,.25),0 2px 8px rgba(0,0,0,.5);
+}
+
+/* ── Butoane plutitoare ─────────────────────────────────────── */
+#unelte{
+  position:fixed;right:12px;z-index:900;display:flex;flex-direction:column;gap:9px;
+  bottom:calc(var(--jos) + 148px);
+}
+.unealta{
+  width:50px;height:50px;border-radius:15px;background:var(--asfalt-2);
+  border:1px solid var(--contur);display:grid;place-items:center;
+  box-shadow:0 6px 18px rgba(0,0,0,.5);font-size:20px;
+}
+.unealta.activ{background:var(--chihlimbar);border-color:var(--chihlimbar);color:#0E1116}
+.unealta small{display:block;font-size:8.5px;font-family:var(--mono);letter-spacing:.05em;margin-top:1px}
+
+/* ── Panoul de jos ──────────────────────────────────────────── */
+#panou{
+  position:fixed;left:0;right:0;bottom:0;z-index:1100;
+  background:var(--asfalt-2);border-top:1px solid var(--contur);
+  border-radius:20px 20px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.6);
+  max-height:82vh;display:flex;flex-direction:column;
+  transform:translateY(calc(100% - 132px - var(--jos)));
+  transition:transform .3s cubic-bezier(.3,.9,.3,1);
+  padding-bottom:var(--jos);
+}
+#panou.deschis{transform:translateY(0)}
+@media (prefers-reduced-motion:reduce){#panou{transition:none}}
+#maner{padding:9px 16px 8px;flex:none;cursor:pointer;touch-action:none}
+#maner .bara{width:38px;height:4px;border-radius:2px;background:var(--contur);margin:0 auto 10px}
+#file{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+#file::-webkit-scrollbar{display:none}
+.fila{
+  padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;
+  border:1px solid var(--contur);color:var(--gri);
+}
+.fila.activ{background:var(--chihlimbar);border-color:var(--chihlimbar);color:#0E1116}
+#lista{overflow-y:auto;padding:4px 10px 18px;-webkit-overflow-scrolling:touch}
+
+.rand{
+  display:flex;align-items:flex-start;gap:11px;padding:11px 8px;
+  border-bottom:1px solid rgba(42,52,64,.55);width:100%;text-align:left;
+}
+.rand:last-child{border-bottom:0}
+.nr{
+  flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
+  font-family:var(--mono);font-size:11.5px;font-weight:700;
+  background:var(--asfalt-3);color:var(--gri);border:1px solid var(--contur);margin-top:1px;
+}
+.rand-txt{flex:1;min-width:0}
+.rand-nume{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+.rand-tronson{font-size:12px;color:var(--gri);margin-top:1px}
+.rand-stare{flex:none;text-align:right;margin-top:2px}
+.eticheta{
+  font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;padding:3px 7px;border-radius:6px;white-space:nowrap;display:inline-block;
+}
+.e-stop{background:rgba(226,59,59,.18);color:#FF8A8A}
+.e-liber{background:rgba(47,191,113,.15);color:#7EE2AC}
+.e-atentie{background:rgba(244,179,28,.18);color:var(--chihlimbar)}
+.contor{display:block;font-family:var(--mono);font-size:10.5px;color:var(--gri);margin-top:3px;font-variant-numeric:tabular-nums}
+
+/* ── Foaia de timp ──────────────────────────────────────────── */
+#foaie-timp{
+  position:fixed;inset:0;z-index:1500;background:rgba(6,8,11,.72);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  display:none;align-items:flex-end;
+}
+#foaie-timp.vizibil{display:flex}
+#foaie-timp .cutie{
+  width:100%;background:var(--asfalt-2);border-top:1px solid var(--contur);
+  border-radius:20px 20px 0 0;padding:18px 18px calc(22px + var(--jos));
+}
+#foaie-timp h2{margin:0 0 3px;font-size:17px;letter-spacing:-.01em}
+#foaie-timp p.hint{margin:0 0 16px;font-size:12.5px;color:var(--gri)}
+.camp{margin-bottom:15px}
+.camp label{
+  display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--gri);margin-bottom:7px;
+}
+.camp input[type=date]{
+  width:100%;background:var(--asfalt-3);border:1px solid var(--contur);color:var(--marcaj);
+  border-radius:11px;padding:11px 12px;font-family:var(--mono);font-size:15px;
+}
+#ora-mare{font-family:var(--mono);font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+input[type=range]{width:100%;accent-color:var(--chihlimbar);height:30px}
+.butoane{display:flex;gap:9px;margin-top:4px}
+.btn{flex:1;padding:13px;border-radius:13px;font-weight:700;font-size:14.5px;text-align:center}
+.btn-plin{background:var(--chihlimbar);color:#0E1116}
+.btn-gol{background:var(--asfalt-3);border:1px solid var(--contur);color:var(--marcaj)}
+.sarituri{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.saritura{padding:6px 11px;border-radius:9px;background:var(--asfalt-3);border:1px solid var(--contur);font-family:var(--mono);font-size:12px}
+
+/* ── Fișa străzii ───────────────────────────────────────────── */
+#fisa{
+  position:fixed;inset:0;z-index:1600;background:rgba(6,8,11,.72);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:flex-end;
+}
+#fisa.vizibil{display:flex}
+#fisa .cutie{
+  width:100%;background:var(--asfalt-2);border-top:1px solid var(--contur);
+  border-radius:20px 20px 0 0;padding:18px 18px calc(20px + var(--jos));max-height:88vh;overflow-y:auto;
+}
+#fisa .crt{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--chihlimbar);font-weight:700}
+#fisa h2{margin:5px 0 2px;font-size:23px;letter-spacing:-.02em;line-height:1.15}
+#fisa .tronson{color:var(--gri);font-size:13.5px;margin-bottom:15px}
+.linie-fisa{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid rgba(42,52,64,.5);font-size:13.5px}
+.linie-fisa .k{flex:none;width:104px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gri);padding-top:3px}
+.linie-fisa .v{flex:1}
+.nota{margin-top:15px;font-size:12px;color:var(--gri);line-height:1.6;border-left:2px solid var(--contur);padding-left:11px}
+
+/* ── Legenda ────────────────────────────────────────────────── */
+#legenda{
+  position:fixed;left:12px;bottom:calc(var(--jos) + 148px);z-index:900;
+  background:rgba(22,28,37,.94);border:1px solid var(--contur);border-radius:13px;
+  padding:11px 13px;font-size:11.5px;display:none;max-width:60vw;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+#legenda.vizibil{display:block}
+#legenda div{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+#legenda div:last-child{margin-bottom:0}
+#legenda i{width:22px;height:4px;border-radius:2px;flex:none}
+#legenda .stil{width:22px;height:0;border-top:3px solid var(--gri);flex:none}
+
+#incarcare{
+  position:fixed;inset:0;z-index:2000;background:var(--asfalt);
+  display:grid;place-items:center;text-align:center;padding:24px;
+}
+#incarcare .marca{font-size:13px}
+#incarcare p{color:var(--gri);font-size:13px;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div id="incarcare">
+  <div>
+    <div class="marca">IAS TRASEE <span>· Constanța</span></div>
+    <p>Se încarcă harta…</p>
+  </div>
+</div>
+
+<div id="harta"></div>
+
+<header id="banda">
+  <div id="banda-sus">
+    <div>
+      <div class="marca">IAS TRASEE <span>· instruire</span></div>
+      <div id="data-mica"></div>
+    </div>
+    <div style="margin-left:auto;text-align:right">
+      <div id="ceas">--:--</div>
+      <span id="simulare-tag">SIMULARE</span>
+    </div>
+  </div>
+  <div id="banda-jos">
+    <span class="pastila p-stop"><b id="nr-stop">0</b> interzise</span>
+    <span class="pastila p-liber"><b id="nr-liber">0</b> libere</span>
+    <span id="urmatoarea"></span>
+  </div>
+</header>
+
+<div id="alerta" role="alert" aria-live="assertive">
+  <button class="inchide" aria-label="Închide alerta">×</button>
+  <div class="cap">Ești pe o stradă interzisă</div>
+  <div class="strada" id="alerta-nume"></div>
+  <div class="sub" id="alerta-sub"></div>
+</div>
+
+<div id="legenda">
+  <div><i style="background:#E23B3B"></i> Interzis acum</div>
+  <div><i style="background:#F4B31C"></i> Se închide curând</div>
+  <div><i style="background:#2FBF71"></i> Liber acum</div>
+  <div style="margin-top:9px"><span class="stil"></span> Permanent</div>
+  <div><span class="stil" style="border-top-style:dashed"></span> Ore de vârf</div>
+  <div><span class="stil" style="border-top-style:dotted"></span> Sezon estival</div>
+</div>
+
+<div id="unelte">
+  <button class="unealta" id="btn-gps" title="Unde sunt">◎</button>
+  <button class="unealta" id="btn-traseu" title="Mod traseu">🚗<small>TRASEU</small></button>
+  <button class="unealta" id="btn-ora" title="Verifică altă oră">⏱</button>
+  <button class="unealta" id="btn-legenda" title="Legendă">☰</button>
+</div>
+
+<section id="panou">
+  <div id="maner">
+    <div class="bara"></div>
+    <div id="file">
+      <button class="fila activ" data-filtru="toate">Toate</button>
+      <button class="fila" data-filtru="interzis">Interzise acum</button>
+      <button class="fila" data-filtru="liber">Libere acum</button>
+      <button class="fila" data-filtru="mereu">Permanent</button>
+      <button class="fila" data-filtru="orar">Ore de vârf</button>
+      <button class="fila" data-filtru="sezon">Sezon</button>
+    </div>
+  </div>
+  <div id="lista"></div>
+</section>
+
+<div id="foaie-timp">
+  <div class="cutie">
+    <h2>Verifică altă oră</h2>
+    <p class="hint">Vezi ce e interzis la o dată și oră aleasă de tine — util când planifici ședințele.</p>
+    <div class="camp">
+      <label for="in-data">Data</label>
+      <input type="date" id="in-data">
+    </div>
+    <div class="camp">
+      <label for="in-ora">Ora — <span id="ora-mare">12:00</span></label>
+      <input type="range" id="in-ora" min="0" max="1435" step="5" value="720">
+      <div class="sarituri">
+        <button class="saritura" data-min="480">08:00</button>
+        <button class="saritura" data-min="630">10:30</button>
+        <button class="saritura" data-min="750">12:30</button>
+        <button class="saritura" data-min="870">14:30</button>
+        <button class="saritura" data-min="1110">18:30</button>
+      </div>
+    </div>
+    <div class="butoane">
+      <button class="btn btn-gol" id="btn-acum">Înapoi la acum</button>
+      <button class="btn btn-plin" id="btn-aplica">Vezi harta</button>
+    </div>
+  </div>
+</div>
+
+<div id="fisa">
+  <div class="cutie">
+    <div class="crt" id="f-crt"></div>
+    <h2 id="f-nume"></h2>
+    <div class="tronson" id="f-tronson"></div>
+    <div id="f-linii"></div>
+    <div class="nota" id="f-nota"></div>
+    <div class="butoane" style="margin-top:16px">
+      <button class="btn btn-gol" id="f-inchide">Închide</button>
+      <button class="btn btn-plin" id="f-arata">Arată pe hartă</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   1. DATELE — singurul loc pe care îl editezi când poliția
+      trimite o adresă nouă.
+      Sursa: IPJ Constanța, Serviciul Siguranță Rutieră,
+      nr. 585056/RDV/CT din 05.08.2026.
+
+   ⚠ Coordonatele de mai jos sunt APROXIMATIVE (trasate manual).
+     Rulează unelte/genereaza-geometrie.py ca să le înlocuiești
+     cu geometria reală din OpenStreetMap. Vezi README.md.
+   ═══════════════════════════════════════════════════════════════ */
+
+const DOCUMENT = {
+  numar:'585056/RDV/CT',
+  data:'05.08.2026',
+  emitent:'IPJ Constanța — Serviciul Siguranță Rutieră',
+  temei:'art. 14 din Ordinul nr. 268/2010 și art. 31 din Regulamentul de aplicare a O.U.G. nr. 195/2002',
+  sanctiune:'Nerespectarea traseelor stabilite de poliția rutieră = contravenție, art. 100 alin. (1) pct. 8 din O.U.G. nr. 195/2002, amendă clasa a II-a de sancțiuni.',
+  tonaj:'Pentru categoriile C, CE, D, DE și Tr se respectă suplimentar restricțiile de tonaj impuse de administratorul drumului public.'
+};
+
+const REGULI = {
+  sezon:{ nume:'Sezon estival', descriere:'Interzis zilnic, 1 iunie – 15 septembrie', stil:'2 8' },
+  orar: { nume:'Ore de vârf',   descriere:'Interzis 07:00–10:00 și 14:00–18:00',      stil:'14 9' },
+  mereu:{ nume:'Permanent',     descriere:'Interzis permanent, la orice oră',          stil:null   }
+};
+
+const STRAZI = [
+ {crt:'1',  nume:'Bd. Mamaia',        tronson:'între bd. Aurel Vlaicu și orș. Năvodari', regula:'sezon',
+  linie:[[44.2128,28.6413],[44.2190,28.6330],[44.2280,28.6232],[44.2400,28.6180],[44.2530,28.6146],[44.2660,28.6112],[44.2800,28.6082],[44.2950,28.6062],[44.3080,28.6050]]},
+ {crt:'1',  nume:'Bd. Mamaia',        tronson:'între bd. Aurel Vlaicu și str. Soveja', regula:'sezon',
+  linie:[[44.2128,28.6413],[44.2090,28.6424],[44.2045,28.6434],[44.2010,28.6440]]},
+ {crt:'2',  nume:'Bd. Tomis',         tronson:'între bd. Aurel Vlaicu și str. Traian', regula:'sezon',
+  linie:[[44.2085,28.6300],[44.2020,28.6336],[44.1950,28.6382],[44.1880,28.6440],[44.1820,28.6490],[44.1770,28.6530],[44.1740,28.6556],[44.1726,28.6570]]},
+ {crt:'3',  nume:'Str. Primăverii',   tronson:'între str. Soveja și str. Ion Rațiu', regula:'sezon',
+  linie:[[44.2005,28.6300],[44.2050,28.6286],[44.2100,28.6270],[44.2140,28.6256]]},
+
+ {crt:'4',  nume:'Str. Soveja',       tronson:'între bd. Mamaia și str. Primăverii', regula:'orar',
+  linie:[[44.2010,28.6440],[44.2008,28.6390],[44.2007,28.6342],[44.2005,28.6300]]},
+ {crt:'5',  nume:'Bd. 1 Mai',         tronson:'între str. Th. Burada și Șos. Mangaliei', regula:'orar',
+  linie:[[44.1745,28.6120],[44.1720,28.6165],[44.1695,28.6206],[44.1670,28.6240]]},
+ {crt:'6',  nume:'Șos. Mangaliei',    tronson:'între bd. 1 Mai și str. Hatman Arbore', regula:'orar',
+  linie:[[44.1670,28.6240],[44.1622,28.6250],[44.1572,28.6259],[44.1520,28.6266]]},
+ {crt:'7',  nume:'Str. Chiliei',      tronson:'întreg tronsonul', regula:'orar',
+  linie:[[44.1965,28.6296],[44.1990,28.6256],[44.2010,28.6220]]},
+ {crt:'8',  nume:'Str. Maramureș',    tronson:'întreg tronsonul', regula:'orar',
+  linie:[[44.1930,28.6250],[44.1955,28.6215],[44.1975,28.6181]]},
+ {crt:'9',  nume:'Str. Ion Andreescu',tronson:'întreg tronsonul', regula:'orar',
+  linie:[[44.1905,28.6350],[44.1930,28.6311],[44.1950,28.6276]]},
+ {crt:'10', nume:'Str. Războieni',    tronson:'întreg tronsonul', regula:'orar',
+  linie:[[44.1870,28.6390],[44.1895,28.6351],[44.1915,28.6316]]},
+
+ {crt:'11', nume:'Str. Mihai Viteazu',tronson:'între bd. Ferdinand și str. Traian', regula:'mereu',
+  linie:[[44.1785,28.6480],[44.1760,28.6505],[44.1738,28.6528],[44.1722,28.6548]]},
+ {crt:'12', nume:'Str. Traian',       tronson:'între bd. Tomis și str. Mihai Viteazu', regula:'mereu',
+  linie:[[44.1730,28.6580],[44.1715,28.6556],[44.1700,28.6531],[44.1686,28.6506]]},
+ {crt:'13', nume:'Str. Mircea cel Bătrân', tronson:'între str. Dimitrie Cantemir și bd. Ferdinand', regula:'mereu',
+  linie:[[44.1720,28.6480],[44.1750,28.6466],[44.1780,28.6451]]},
+ {crt:'14', nume:'Str. Mihail Kogălniceanu', tronson:'între bd. Ferdinand și str. Dragoș Vodă', regula:'mereu',
+  linie:[[44.1790,28.6441],[44.1815,28.6426],[44.1840,28.6411]]},
+ {crt:'15', nume:'Str. Termele Romane', tronson:'întreg tronsonul', regula:'mereu',
+  linie:[[44.1735,28.6595],[44.1745,28.6606]]},
+ {crt:'16', nume:'Bd. Regina Elisabeta', tronson:'întreg tronsonul', regula:'mereu',
+  linie:[[44.1720,28.6601],[44.1745,28.6600],[44.1770,28.6596],[44.1790,28.6586]]},
+ {crt:'17', nume:'Str. Remus Opreanu', tronson:'întreg tronsonul', regula:'mereu',
+  linie:[[44.1755,28.6570],[44.1760,28.6591]]},
+ {crt:'18', nume:'Str. Lebedei',      tronson:'întreg tronsonul', regula:'mereu',
+  linie:[[44.1765,28.6555],[44.1772,28.6576]]},
+ {crt:'19', nume:'Str. Ecaterina Varga', tronson:'întreg tronsonul', regula:'mereu',
+  linie:[[44.1748,28.6560],[44.1755,28.6581]]},
+ {crt:'20', nume:'Str. Revoluției din 22 Dec. 1989', tronson:'întreg tronsonul', regula:'mereu',
+  linie:[[44.1780,28.6561],[44.1790,28.6581]]},
+ {crt:'21', nume:'Str. Marcus Aurelius', tronson:'întreg tronsonul', regula:'mereu',
+  linie:[[44.1740,28.6581],[44.1748,28.6599]]},
+ {crt:'22', nume:'Str. Sulmona',      tronson:'întreg tronsonul', regula:'mereu',
+  linie:[[44.1728,28.6588],[44.1738,28.6603]]}
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   2. LOGICA DE TIMP — ce e interzis, când, și peste cât timp
+      se schimbă. Totul se calculează în telefon; nu există server.
+   ═══════════════════════════════════════════════════════════════ */
+
+const INTERVALE = [[7*60, 10*60], [14*60, 18*60]];   // 07:00–10:00, 14:00–18:00
+const SEZON = {de_la:'06-01', pana_la:'09-15'};
+
+function minuteZi(d){ return d.getHours()*60 + d.getMinutes(); }
+function inSezon(d){
+  const z = String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  return z >= SEZON.de_la && z <= SEZON.pana_la;
+}
+function zileIntre(a,b){ return Math.round((b-a)/86400000); }
+
+// Returnează {interzis, minutePana, devine} pentru o stradă la un moment dat.
+function stare(strada, d){
+  if(strada.regula === 'mereu') return {interzis:true, minutePana:null, devine:null};
+
+  if(strada.regula === 'sezon'){
+    const acum = inSezon(d);
+    let tinta;
+    if(acum){
+      tinta = new Date(d.getFullYear(), 8, 16, 0, 0);           // 16 septembrie
+    }else{
+      const an = (d.getMonth() > 8 || (d.getMonth()===8 && d.getDate()>15)) ? d.getFullYear()+1 : d.getFullYear();
+      tinta = new Date(an, 5, 1, 0, 0);                          // 1 iunie
+    }
+    return {interzis:acum, minutePana:Math.round((tinta-d)/60000), devine:acum?'liber':'interzis'};
+  }
+
+  const m = minuteZi(d);
+  for(const [a,b] of INTERVALE){
+    if(m >= a && m < b) return {interzis:true, minutePana:b-m, devine:'liber'};
+  }
+  const urmatorulStart = INTERVALE.map(i=>i[0]).filter(x => x > m);
+  const pana = urmatorulStart.length ? urmatorulStart[0]-m : (INTERVALE[0][0] + 1440 - m);
+  return {interzis:false, minutePana:pana, devine:'interzis'};
+}
+
+function culoare(s){
+  if(s.interzis) return '#E23B3B';
+  if(s.minutePana !== null && s.minutePana <= 45) return '#F4B31C';
+  return '#2FBF71';
+}
+function textDurata(min){
+  if(min === null) return '';
+  if(min < 60) return min + ' min';
+  if(min < 1440) return Math.floor(min/60) + 'h ' + String(min%60).padStart(2,'0') + 'm';
+  const zile = Math.round(min/1440);
+  return zile + (zile === 1 ? ' zi' : ' zile');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   3. HARTA
+   ═══════════════════════════════════════════════════════════════ */
+
+const harta = L.map('harta', {
+  center:[44.2150, 28.6300], zoom:12, zoomControl:false,
+  maxBounds:[[44.05,28.40],[44.45,28.90]], maxBoundsViscosity:0.6,
+  preferCanvas:true
+});
+
+/* ⚠ ÎNAINTE DE LANSARE: schimbă furnizorul de hărți.
+   Serverul public OpenStreetMap NU e permis pentru aplicații cu mulți
+   utilizatori. Vezi README.md — secțiunea „Plăci de hartă". */
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution:'&copy; OpenStreetMap · &copy; CARTO',
+  subdomains:'abcd', maxZoom:19
+}).addTo(harta);
+
+const stratStrazi = L.layerGroup().addTo(harta);
+let momentAfisat = null;      // null = live
+let pozitiaMea = null, marcajEu = null, cercEu = null, modTraseu = false, ceasGPS = null;
+let alertaInchisaPentru = null;
+
+STRAZI.forEach((s,i)=>{
+  s.id = i;
+  s.casing = L.polyline(s.linie, {color:'#0B0E12', weight:11, opacity:.85, lineCap:'round', lineJoin:'round'});
+  s.linia  = L.polyline(s.linie, {
+    color:'#888', weight:6, opacity:.95, lineCap:'round', lineJoin:'round',
+    dashArray:REGULI[s.regula].stil
+  });
+  s.atingere = L.polyline(s.linie, {color:'#fff', weight:24, opacity:0});
+  s.atingere.on('click', ()=> deschideFisa(s));
+  stratStrazi.addLayer(s.casing); stratStrazi.addLayer(s.linia); stratStrazi.addLayer(s.atingere);
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   4. REÎMPROSPĂTARE
+   ═══════════════════════════════════════════════════════════════ */
+
+function momentul(){ return momentAfisat ? momentAfisat : new Date(); }
+
+const ZILE = ['duminică','luni','marți','miercuri','joi','vineri','sâmbătă'];
+const LUNI = ['ian','feb','mar','apr','mai','iun','iul','aug','sep','oct','nov','dec'];
+
+function reimprospateaza(){
+  const d = momentul();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  document.getElementById('ceas').textContent = hh + ':' + mm;
+  document.getElementById('data-mica').textContent = ZILE[d.getDay()] + ' ' + d.getDate() + ' ' + LUNI[d.getMonth()];
+
+  let nrStop = 0;
+  let schimbari = [];
+
+  STRAZI.forEach(s=>{
+    s.stare = stare(s, d);
+    if(s.stare.interzis) nrStop++;
+    s.linia.setStyle({color:culoare(s.stare)});
+    if(s.stare.minutePana !== null && s.stare.minutePana <= 180){
+      schimbari.push({min:s.stare.minutePana, devine:s.stare.devine});
+    }
+  });
+
+  document.getElementById('nr-stop').textContent = nrStop;
+  document.getElementById('nr-liber').textContent = STRAZI.length - nrStop;
+
+  const el = document.getElementById('urmatoarea');
+  if(schimbari.length){
+    const minim = Math.min(...schimbari.map(x=>x.min));
+    const grup = schimbari.filter(x=>x.min === minim);
+    const cate = grup.length;
+    const verb = grup[0].devine === 'interzis' ? 'se închid' : 'se deschid';
+    el.innerHTML = 'În <b>' + textDurata(minim) + '</b> ' + verb + ' ' + cate +
+                   (cate === 1 ? ' stradă' : ' străzi');
+  }else{
+    el.textContent = 'Nicio schimbare în următoarele 3 ore';
+  }
+
+  deseneazaLista();
+  verificaProximitatea();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   5. LISTA
+   ═══════════════════════════════════════════════════════════════ */
+
+let filtru = 'toate';
+
+function deseneazaLista(){
+  const gazda = document.getElementById('lista');
+  const ordine = {mereu:0, orar:1, sezon:2};
+  const vizibile = STRAZI
+    .filter(s=>{
+      if(filtru === 'toate') return true;
+      if(filtru === 'interzis') return s.stare.interzis;
+      if(filtru === 'liber') return !s.stare.interzis;
+      return s.regula === filtru;
+    })
+    .sort((a,b)=> (b.stare.interzis - a.stare.interzis) || (ordine[a.regula]-ordine[b.regula]) ||
+                  (parseInt(a.crt)-parseInt(b.crt)));
+
+  if(!vizibile.length){
+    gazda.innerHTML = '<div style="padding:26px 10px;color:var(--gri);font-size:13.5px;text-align:center">' +
+      'Nicio stradă în această categorie la ora afișată.</div>';
+    return;
+  }
+
+  gazda.innerHTML = vizibile.map(s=>{
+    const st = s.stare;
+    let cls, txt;
+    if(st.interzis){ cls='e-stop'; txt='Interzis'; }
+    else if(st.minutePana !== null && st.minutePana <= 45){ cls='e-atentie'; txt='Curând'; }
+    else { cls='e-liber'; txt='Liber'; }
+    const contor = st.minutePana === null ? ''
+      : '<span class="contor">' + (st.devine === 'interzis' ? '↓ ' : '↑ ') + textDurata(st.minutePana) + '</span>';
+    return '<button class="rand" data-id="' + s.id + '">' +
+      '<span class="nr">' + s.crt + '</span>' +
+      '<span class="rand-txt"><span class="rand-nume">' + s.nume + '</span>' +
+      '<span class="rand-tronson">' + s.tronson + '</span></span>' +
+      '<span class="rand-stare"><span class="eticheta ' + cls + '">' + txt + '</span>' + contor + '</span>' +
+    '</button>';
+  }).join('');
+
+  gazda.querySelectorAll('.rand').forEach(b=>{
+    b.addEventListener('click', ()=> deschideFisa(STRAZI[+b.dataset.id]));
+  });
+}
+
+document.querySelectorAll('.fila').forEach(f=>{
+  f.addEventListener('click', ()=>{
+    document.querySelectorAll('.fila').forEach(x=>x.classList.remove('activ'));
+    f.classList.add('activ');
+    filtru = f.dataset.filtru;
+    deseneazaLista();
+    document.getElementById('panou').classList.add('deschis');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   6. FIȘA STRĂZII
+   ═══════════════════════════════════════════════════════════════ */
+
+let stradaDeschisa = null;
+
+function deschideFisa(s){
+  stradaDeschisa = s;
+  const st = s.stare || stare(s, momentul());
+  document.getElementById('f-crt').textContent = 'Nr. crt. ' + s.crt + ' din adresa poliției';
+  document.getElementById('f-nume').textContent = s.nume;
+  document.getElementById('f-tronson').textContent = s.tronson;
+
+  const stareTxt = st.interzis
+    ? '<span class="eticheta e-stop">Interzis acum</span>'
+    : '<span class="eticheta e-liber">Liber acum</span>';
+  const schimb = st.minutePana === null ? 'Nu se schimbă — restricția e permanentă.'
+    : (st.devine === 'interzis' ? 'Devine interzis peste ' : 'Devine liber peste ') + textDurata(st.minutePana) + '.';
+
+  document.getElementById('f-linii').innerHTML =
+    '<div class="linie-fisa"><span class="k">Acum</span><span class="v">' + stareTxt + '</span></div>' +
+    '<div class="linie-fisa"><span class="k">Regulă</span><span class="v"><b>' + REGULI[s.regula].nume + '</b><br>' +
+      REGULI[s.regula].descriere + '</span></div>' +
+    '<div class="linie-fisa"><span class="k">Următor</span><span class="v">' + schimb + '</span></div>';
+
+  document.getElementById('f-nota').innerHTML =
+    DOCUMENT.sanctiune + '<br><br>' + DOCUMENT.tonaj +
+    '<br><br>Sursa: ' + DOCUMENT.emitent + ', adresa nr. ' + DOCUMENT.numar + ' din ' + DOCUMENT.data + '.';
+
+  document.getElementById('fisa').classList.add('vizibil');
+}
+
+document.getElementById('f-inchide').onclick = ()=> document.getElementById('fisa').classList.remove('vizibil');
+document.getElementById('fisa').addEventListener('click', e=>{
+  if(e.target.id === 'fisa') e.currentTarget.classList.remove('vizibil');
+});
+document.getElementById('f-arata').onclick = ()=>{
+  document.getElementById('fisa').classList.remove('vizibil');
+  document.getElementById('panou').classList.remove('deschis');
+  harta.fitBounds(stradaDeschisa.linia.getBounds(), {padding:[70,70], maxZoom:16});
+  const original = stradaDeschisa.linia.options.weight;
+  stradaDeschisa.linia.setStyle({weight:11});
+  setTimeout(()=> stradaDeschisa.linia.setStyle({weight:original}), 1600);
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   7. ALTĂ ORĂ
+   ═══════════════════════════════════════════════════════════════ */
+
+const foaie = document.getElementById('foaie-timp');
+const inData = document.getElementById('in-data');
+const inOra = document.getElementById('in-ora');
+
+function actualizeazaEtichetaOra(){
+  const m = +inOra.value;
+  document.getElementById('ora-mare').textContent =
+    String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+}
+inOra.addEventListener('input', actualizeazaEtichetaOra);
+document.querySelectorAll('.saritura').forEach(b=>{
+  b.onclick = ()=>{ inOra.value = b.dataset.min; actualizeazaEtichetaOra(); };
+});
+
+document.getElementById('btn-ora').onclick = ()=>{
+  const d = momentul();
+  inData.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  inOra.value = Math.floor(minuteZi(d)/5)*5;
+  actualizeazaEtichetaOra();
+  foaie.classList.add('vizibil');
+};
+foaie.addEventListener('click', e=>{ if(e.target.id === 'foaie-timp') foaie.classList.remove('vizibil'); });
+
+document.getElementById('btn-aplica').onclick = ()=>{
+  const [an,luna,zi] = inData.value.split('-').map(Number);
+  const m = +inOra.value;
+  momentAfisat = new Date(an, luna-1, zi, Math.floor(m/60), m%60);
+  document.body.classList.add('simulare');
+  foaie.classList.remove('vizibil');
+  reimprospateaza();
+};
+document.getElementById('btn-acum').onclick = ()=>{
+  momentAfisat = null;
+  document.body.classList.remove('simulare');
+  foaie.classList.remove('vizibil');
+  reimprospateaza();
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   8. GPS ȘI MODUL TRASEU
+   ═══════════════════════════════════════════════════════════════ */
+
+function distantaLaLinie(lat, lng, linie){
+  const k = Math.cos(lat*Math.PI/180)*111320, ky = 110540;
+  const px = lng*k, py = lat*ky;
+  let minim = Infinity;
+  for(let i=0;i<linie.length-1;i++){
+    const ax = linie[i][1]*k,   ay = linie[i][0]*ky;
+    const bx = linie[i+1][1]*k, by = linie[i+1][0]*ky;
+    const dx = bx-ax, dy = by-ay, l2 = dx*dx + dy*dy;
+    let t = l2 === 0 ? 0 : ((px-ax)*dx + (py-ay)*dy)/l2;
+    t = Math.max(0, Math.min(1, t));
+    const d = Math.hypot(px-(ax+t*dx), py-(ay+t*dy));
+    if(d < minim) minim = d;
+  }
+  return minim;
+}
+
+const PRAG_METRI = 120;
+
+function verificaProximitatea(){
+  const alerta = document.getElementById('alerta');
+  if(!pozitiaMea || !modTraseu){ alerta.classList.remove('vizibil'); return; }
+
+  let cea = null, dMin = Infinity;
+  STRAZI.forEach(s=>{
+    if(!s.stare || !s.stare.interzis) return;
+    const d = distantaLaLinie(pozitiaMea.lat, pozitiaMea.lng, s.linie);
+    if(d < dMin){ dMin = d; cea = s; }
+  });
+
+  if(cea && dMin <= PRAG_METRI){
+    if(alertaInchisaPentru === cea.id) return;
+    document.getElementById('alerta-nume').textContent = cea.nume;
+    document.getElementById('alerta-sub').textContent =
+      Math.round(dMin) + ' m · ' + cea.tronson + ' · ' + REGULI[cea.regula].descriere;
+    alerta.classList.add('vizibil');
+    if(navigator.vibrate) navigator.vibrate([120,70,120]);
+  }else{
+    alerta.classList.remove('vizibil');
+    alertaInchisaPentru = null;
+  }
+}
+document.querySelector('#alerta .inchide').onclick = ()=>{
+  const nume = document.getElementById('alerta-nume').textContent;
+  const s = STRAZI.find(x=>x.nume === nume);
+  alertaInchisaPentru = s ? s.id : null;
+  document.getElementById('alerta').classList.remove('vizibil');
+};
+
+function arataPozitia(p){
+  pozitiaMea = {lat:p.coords.latitude, lng:p.coords.longitude};
+  const ll = [pozitiaMea.lat, pozitiaMea.lng];
+  if(!marcajEu){
+    marcajEu = L.marker(ll, {icon:L.divIcon({className:'', html:'<div class="pin-eu"></div>', iconSize:[18,18], iconAnchor:[9,9]})}).addTo(harta);
+  }else{
+    marcajEu.setLatLng(ll);
+  }
+  verificaProximitatea();
+}
+function eroareGPS(){
+  alert('Nu pot citi locația. Verifică dacă ai pornit GPS-ul și dacă ai permis accesul la locație în browser.');
+}
+
+document.getElementById('btn-gps').onclick = ()=>{
+  if(!navigator.geolocation) return eroareGPS();
+  navigator.geolocation.getCurrentPosition(p=>{
+    arataPozitia(p);
+    harta.setView([p.coords.latitude, p.coords.longitude], 16);
+  }, eroareGPS, {enableHighAccuracy:true, timeout:10000});
+};
+
+document.getElementById('btn-traseu').onclick = ()=>{
+  const btn = document.getElementById('btn-traseu');
+  if(modTraseu){
+    modTraseu = false; btn.classList.remove('activ');
+    if(ceasGPS !== null) navigator.geolocation.clearWatch(ceasGPS);
+    ceasGPS = null;
+    document.getElementById('alerta').classList.remove('vizibil');
+  }else{
+    if(!navigator.geolocation) return eroareGPS();
+    modTraseu = true; btn.classList.add('activ');
+    document.getElementById('panou').classList.remove('deschis');
+    ceasGPS = navigator.geolocation.watchPosition(arataPozitia, eroareGPS,
+      {enableHighAccuracy:true, maximumAge:3000, timeout:15000});
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   9. PANOU + LEGENDĂ + PORNIRE
+   ═══════════════════════════════════════════════════════════════ */
+
+document.getElementById('maner').addEventListener('click', e=>{
+  if(e.target.closest('.fila')) return;
+  document.getElementById('panou').classList.toggle('deschis');
+});
+document.getElementById('btn-legenda').onclick = ()=>{
+  document.getElementById('legenda').classList.toggle('vizibil');
+  document.getElementById('btn-legenda').classList.toggle('activ');
+};
+
+reimprospateaza();
+setInterval(()=>{ if(!momentAfisat) reimprospateaza(); }, 15000);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && !momentAfisat) reimprospateaza(); });
+harta.whenReady(()=> setTimeout(()=> document.getElementById('incarcare').style.display = 'none', 350));
+setTimeout(()=> document.getElementById('incarcare').style.display = 'none', 4000);
+</script>
+</body>
+</html>
