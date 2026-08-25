@@ -46,31 +46,48 @@ Unealta cere o singură dată toate străzile din zonă, apoi lucrează local:
 Dacă serverele sunt aglomerate, încearcă singură alte două servere. Dacă nici acelea
 nu răspund, îți spune clar și încerci peste un sfert de oră. Nimic nu se strică.
 
-### Pasul 4 — Verifică fiecare stradă
+### Pasul 4 — Verifică, și corectează ce e greșit
 
-Aici e partea importantă și **de aceea unealta nu face totul singură**.
+Aici e partea importantă, și de aceea unealta nu decide singură.
 
 Fiecare din cele 23 de poziții are un bulinuț:
 
 - **verde** — a găsit strada și a tăiat tronsonul;
-- **galben** — a găsit strada, dar nu a putut tăia tronsonul (îți dă strada întreagă);
-- **roșu** — nu a găsit strada în OpenStreetMap.
+- **galben** — a găsit strada, dar nu a putut tăia (îți dă strada întreagă);
+- **roșu** — nu a găsit strada deloc.
 
-Apeși pe una → se desenează pe hartă, cu **buline mov în punctele unde a tăiat**.
-Te uiți: linia stă pe stradă? Începe și se termină unde scrie în adresă?
+**Lucrează în două runde. Întâi accepți tot ce e bun, abia apoi te ocupi de ce nu e.**
+Așa vezi repede cât de mult mai ai de lucru și nu te încurci.
 
-- Dacă da → **„Arată bine — acceptă”**. Trece automat la următoarea.
-- Dacă nu → **„Lasă-l pe dinafară”**.
+**Runda 1 — verzile.** Apeși pe o stradă → se desenează pe hartă, cu bulină albastră unde
+începe tronsonul și roșie unde se termină. Te uiți: linia stă pe stradă? Începe și se
+termină unde scrie în adresă? Dacă da → **Acceptă**. Sare singură la următoarea.
 
-Butonul **„Acceptă tot ce e verde”** merge rapid peste toate cele verzi. **Uită-te
-totuși peste ele** — sunt cinci minute care te scutesc de o amendă.
+Sub fiecare scrie lungimea în metri — cea mai rapidă verificare. Bd. Tomis între Aurel
+Vlaicu și Traian trebuie să iasă câțiva kilometri. Dacă îți dă 200 m, a tăiat greșit.
 
-Sub fiecare stradă scrie și lungimea în metri. E cea mai bună verificare rapidă:
-dacă Bd. Tomis între Aurel Vlaicu și Traian îți dă 4 km, e corect. Dacă îți dă 200 m,
-ceva a tăiat greșit.
+Butonul **„Acceptă verzile”** le ia pe toate deodată. Uită-te totuși peste ele.
 
-Când o stradă apare în două bucăți, de obicei e un bulevard cu sensuri separate în OSM.
-E normal și e chiar mai corect așa.
+**Runda 2 — galbenele și cele tăiate greșit.** Apeși pe stradă, apoi pe
+**✎ Ajustează capetele**:
+
+1. Strada întreagă apare gri pe hartă. Scrie: *„Apasă pe hartă unde ÎNCEPE tronsonul”*.
+   Apeși cu degetul pe hartă, aproximativ. **Nu trebuie să nimerești exact** — unealta
+   lipește singură apăsarea de cel mai apropiat punct de pe stradă, deci linia rămâne
+   întotdeauna exact pe drum.
+2. Apoi: *„Acum apasă unde SE TERMINĂ”*. Apeși al doilea capăt. Vezi imediat verde
+   tronsonul și câți metri are.
+3. Nu e bine? Apasă din nou pe hartă — se mută capătul roșu. Sau **Ia de la început**.
+4. **Salvează tronsonul**.
+
+Alte două butoane, când îți trebuie:
+- **Până la capăt** — apeși doar începutul, restul merge până la capătul străzii.
+  Ăsta e cazul „de la Aurel Vlaicu până la Năvodari”.
+- **Vreau strada întreagă** — anulează orice tăiere.
+
+**Când o stradă apare în mai multe bucăți**, sub ea apar butoane *„bucata 1 · 820 m”*.
+De obicei sunt cele două sensuri ale unui bulevard și le lași pe amândouă. Dar dacă o
+bucată e din altă parte a orașului (o stradă cu același nume), o stingi cu o apăsare.
 
 ### Pasul 5 — Descarcă `trasee.json`
 
