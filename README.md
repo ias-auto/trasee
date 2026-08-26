@@ -46,48 +46,57 @@ Unealta cere o singură dată toate străzile din zonă, apoi lucrează local:
 Dacă serverele sunt aglomerate, încearcă singură alte două servere. Dacă nici acelea
 nu răspund, îți spune clar și încerci peste un sfert de oră. Nimic nu se strică.
 
-### Pasul 4 — Verifică, și corectează ce e greșit
+### Pasul 4 — Verifică pe rând
 
-Aici e partea importantă, și de aceea unealta nu decide singură.
+**Nu se mai poate pierde nimic.** Fiecare apăsare se salvează în telefon. Poți închide
+pagina, apăsa Back, primi un telefon — când te întorci, apeși *„Continuă de unde ai
+rămas”* și ești exact unde erai.
 
-Fiecare din cele 23 de poziții are un bulinuț:
+Unealta pornește singură în modul **verifică pe rând**: o poziție pe ecran, harta
+deasupra, trei butoane dedesubt. Nu trebuie să cauți nimic în listă.
 
-- **verde** — a găsit strada și a tăiat tronsonul;
-- **galben** — a găsit strada, dar nu a putut tăia (îți dă strada întreagă);
-- **roșu** — nu a găsit strada deloc.
+Pentru fiecare stradă vezi:
 
-**Lucrează în două runde. Întâi accepți tot ce e bun, abia apoi te ocupi de ce nu e.**
-Așa vezi repede cât de mult mai ai de lucru și nu te încurci.
+- **linia verde** = tronsonul, cu numele scris pe ea;
+- **liniile mov punctate** = străzile de la capete, din coloana „Tronson” a adresei,
+  cu numele lor scris deasupra;
+- **bulina albastră** = unde începe, **roșie** = unde se termină;
+- bifele de sub hartă: *✓ Începe la Bulevardul Aurel Vlaicu · ✓ Se termină la Strada Traian*.
 
-**Runda 1 — verzile.** Apeși pe o stradă → se desenează pe hartă, cu bulină albastră unde
-începe tronsonul și roșie unde se termină. Te uiți: linia stă pe stradă? Începe și se
-termină unde scrie în adresă? Dacă da → **Acceptă**. Sare singură la următoarea.
+Asta e tot ce trebuie să compari cu adresa. Dacă cele două nume mov sunt cele din adresă
+și linia verde e între ele, e corect.
 
-Sub fiecare scrie lungimea în metri — cea mai rapidă verificare. Bd. Tomis între Aurel
-Vlaicu și Traian trebuie să iasă câțiva kilometri. Dacă îți dă 200 m, a tăiat greșit.
+Ce apeși:
 
-Butonul **„Acceptă verzile”** le ia pe toate deodată. Uită-te totuși peste ele.
+- **E bine — acceptă** → trece la următoarea.
+- **✎ Taie capetele** → o corectezi tu (mai jos).
+- **Sari ›** → o lași pentru mai târziu.
 
-**Runda 2 — galbenele și cele tăiate greșit.** Apeși pe stradă, apoi pe
-**✎ Ajustează capetele**:
+Cele tăiate automat cu succes vin deja acceptate. Tu doar confirmi sau corectezi, deci
+la majoritatea apeși o singură dată.
 
-1. Strada întreagă apare gri pe hartă. Scrie: *„Apasă pe hartă unde ÎNCEPE tronsonul”*.
-   Apeși cu degetul pe hartă, aproximativ. **Nu trebuie să nimerești exact** — unealta
-   lipește singură apăsarea de cel mai apropiat punct de pe stradă, deci linia rămâne
-   întotdeauna exact pe drum.
-2. Apoi: *„Acum apasă unde SE TERMINĂ”*. Apeși al doilea capăt. Vezi imediat verde
-   tronsonul și câți metri are.
-3. Nu e bine? Apasă din nou pe hartă — se mută capătul roșu. Sau **Ia de la început**.
-4. **Salvează tronsonul**.
+Verificarea cea mai rapidă rămâne lungimea, scrisă sub bife. Bd. Tomis între Aurel Vlaicu
+și Traian trebuie să iasă câțiva kilometri. Dacă dă 200 m, a tăiat greșit.
 
-Alte două butoane, când îți trebuie:
-- **Până la capăt** — apeși doar începutul, restul merge până la capătul străzii.
-  Ăsta e cazul „de la Aurel Vlaicu până la Năvodari”.
-- **Vreau strada întreagă** — anulează orice tăiere.
+### Cum corectezi un tronson
 
-**Când o stradă apare în mai multe bucăți**, sub ea apar butoane *„bucata 1 · 820 m”*.
-De obicei sunt cele două sensuri ale unui bulevard și le lași pe amândouă. Dar dacă o
-bucată e din altă parte a orașului (o stradă cu același nume), o stingi cu o apăsare.
+Apeși **✎ Taie capetele**:
+
+1. Strada întreagă apare gri. Scrie *„Apasă pe hartă unde ÎNCEPE tronsonul”*. Apeși cu
+   degetul, aproximativ. **Nu trebuie să nimerești exact** — unealta lipește apăsarea de
+   cel mai apropiat punct de pe stradă, deci linia rămâne întotdeauna pe drum.
+2. *„Acum apasă unde SE TERMINĂ”*. Apeși al doilea capăt. Vezi imediat câți metri are.
+3. Nu e bine? Apeși din nou pe hartă — se mută capătul roșu. Sau **Ia de la început**.
+4. **Salvează tronsonul**. Te întoarce unde erai.
+
+Două scurtături: **Până la capăt** (apeși doar începutul — cazul „până la Năvodari”) și
+**Vreau strada întreagă** (anulează orice tăiere).
+
+Dacă apeși Back din greșeală în timp ce tai, ieși doar din tăiere, nu din pagină.
+
+**Când o stradă apare în mai multe bucăți**, în listă apar butoane *„bucata 1 · 820 m”*.
+De obicei sunt cele două sensuri ale unui bulevard și le lași pe amândouă. Dacă una e din
+altă parte a orașului, o stingi cu o apăsare.
 
 ### Pasul 5 — Descarcă `trasee.json`
 
