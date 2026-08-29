@@ -55,10 +55,17 @@ body.gata #pas1{display:none}
 #eroare.vizibil{display:block}
 #eroare b{display:block;margin-bottom:5px;color:#FF8A8A}
 
-#harta{flex:none;height:31vh;min-height:170px;background:var(--panel-2);display:none}
+#harta{flex:none;height:var(--hHarta,30vh);min-height:0;background:var(--panel-2);display:none}
 body.gata #harta{display:block}
 body.pliat #harta{display:none}
-body.ghid #harta{height:33vh;display:block}
+#maner{flex:none;display:none;height:22px;background:var(--panel);border-bottom:1px solid var(--contur);
+  align-items:center;justify-content:center;cursor:row-resize;touch-action:none;position:relative}
+body.gata #maner{display:flex}
+#maner i{width:44px;height:4px;border-radius:2px;background:var(--contur);transition:background .15s,width .15s}
+#maner.trage i{background:var(--chihlimbar);width:74px}
+#maner b{position:absolute;right:10px;font-family:var(--mono);font-size:10px;color:var(--gri);font-weight:400}
+body.pliat #maner b::after{content:"harta ascunsă · apasă"}
+body:not(.pliat) #maner b::after{content:"trage ↕ · apasă"}
 .leaflet-container{background:#dfe3e8;font-family:var(--sans)}
 .leaflet-control-attribution{font-size:9px!important}
 .pin{width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.6)}
@@ -71,7 +78,7 @@ body.ghid #harta{height:33vh;display:block}
 /* ── GHID ── */
 #ghid{flex:1 1 auto;min-height:0;overflow-y:auto;display:none;padding:12px 13px calc(12px + var(--jos))}
 body.ghid #ghid{display:block}
-body.ghid #zona-lista,body.ghid #subsol{display:none}
+body.gata.ghid #zona-lista,body.gata.ghid #subsol{display:none}
 #g-progres{height:5px;background:var(--panel-2);border-radius:3px;overflow:hidden;margin-bottom:11px}
 #g-progres i{display:block;height:100%;background:var(--chihlimbar);transition:width .25s}
 #g-nr{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gri)}
@@ -139,14 +146,17 @@ body.gata #zona-lista{display:block}
   font-family:var(--mono);font-size:11.5px;font-weight:700;background:var(--panel-2);border:1px solid var(--contur);color:var(--gri)}
 .card.aprobat .crt{background:var(--ok);border-color:var(--ok);color:#0B1A11}
 .card-txt{flex:1;min-width:0}
-.card-nume{font-size:14.5px;font-weight:700}
-.card-tronson{font-size:12px;color:var(--gri);margin-top:1px}
-.card-mesaj{font-size:12px;margin-top:5px;line-height:1.5}
+.card-nume{display:block;font-size:14.5px;font-weight:700;line-height:1.25}
+.card-tronson{display:block;font-size:12px;color:var(--gri);margin-top:2px;line-height:1.35}
+.card-mesaj{display:block;font-size:12px;margin-top:5px;line-height:1.45}
 .punct{flex:none;width:9px;height:9px;border-radius:50%;margin-top:9px}
 .p-ok{background:var(--ok)} .p-atentie{background:var(--atentie)} .p-rau{background:var(--rau)}
 .nevazut{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--chihlimbar);margin-left:5px;vertical-align:middle}
 .detaliu{display:block;margin-top:6px;font-family:var(--mono);font-size:10.5px;color:var(--gri)}
-.bucati{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.bucati-sumar{display:block;width:100%;text-align:left;margin-top:9px;padding:9px 11px;border-radius:10px;
+  border:1px solid var(--contur);background:var(--panel-2);font-family:var(--mono);font-size:11.5px;color:var(--gri)}
+.bucati-sumar span{float:right;color:var(--chihlimbar)}
+.bucati{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;max-height:31vh;overflow-y:auto}
 .bucata{padding:6px 10px;border-radius:9px;font-family:var(--mono);font-size:11px;
   border:1px solid var(--contur);background:var(--panel-2);color:var(--gri)}
 .bucata.pornit{background:rgba(47,191,113,.18);border-color:rgba(47,191,113,.5);color:#7EE2AC}
@@ -198,6 +208,7 @@ body.gata #subsol{display:block}
 
 <div id="eroare"></div>
 <div id="harta"></div>
+<div id="maner" title="Trage ca să schimbi înălțimea, apasă ca s-o ascunzi"><i></i><b></b></div>
 
 <section id="ghid">
   <div id="g-progres"><i></i></div>
@@ -723,8 +734,10 @@ function aratGhid(){
     al.querySelectorAll('[data-cap]').forEach(b => b.onclick = ()=> deschideAlegere(ghidIdx, b.dataset.cap));
   }
 
-  document.getElementById('g-masura').textContent = r.linii.length
-    ? r.linii.length + (r.linii.length===1?' fir · ':' fire · ') + textLungime(r.lungime) : '';
+  document.getElementById('g-masura').innerHTML = (r.linii.length
+    ? r.linii.length + (r.linii.length===1?' fir · ':' fire · ') + textLungime(r.lungime) : '') +
+    (r.lanturiIntregi.length > 1 ? '<div style="margin-top:8px">' + htmlBucati(r, ghidIdx) + '</div>' : '');
+  legaBucati(document.getElementById('g-masura'));
 
   const b = document.getElementById('g-butoane');
   b.innerHTML = (r.linii.length
@@ -818,16 +831,44 @@ document.getElementById('al-renunt').onclick = inchideAlegere;
    LISTA
    ══════════════════════════════════════════════════════════════════ */
 
+let bucatiDeschise = -1;
+
+/* Străzile lungi ies din OpenStreetMap în zeci de bucăți. Le ținem strânse
+   într-un singur rând; se desfac doar dacă vrei să stingi vreuna. */
+function htmlBucati(r, i){
+  const n = r.lanturiIntregi.length, porn = r.active.filter(Boolean).length;
+  let h = '<button class="bucati-sumar" data-sum="' + i + '">' +
+    n + ' bucăți · ' + porn + ' pornite <span>' + (bucatiDeschise === i ? '▴ strânge' : '▾ desfă') + '</span></button>';
+  if(bucatiDeschise === i)
+    h += '<div class="bucati">' + r.lanturiIntregi.map((l,j)=>
+      '<button class="bucata' + (r.active[j] ? ' pornit' : '') + '" data-b="' + i + '_' + j + '">' +
+      (r.active[j] ? '✓ ' : '') + (j+1) + ' · ' + Math.round(lungime(l)) + ' m</button>').join('') + '</div>';
+  return h;
+}
+function legaBucati(gazda){
+  gazda.querySelectorAll('[data-sum]').forEach(b => b.onclick = ()=>{
+    const i = +b.dataset.sum;
+    bucatiDeschise = (bucatiDeschise === i) ? -1 : i;
+    if(ghidIdx >= 0) aratGhid(); else deseneazaLista();
+  });
+  gazda.querySelectorAll('[data-b]').forEach(b => b.onclick = ()=>{
+    const q = b.dataset.b.split('_'), i = +q[0], j = +q[1];
+    const r = rezultate[i];
+    r.active[j] = !r.active[j];
+    if(!r.active.some(Boolean)) r.active[j] = true;
+    recalculeaza(r); selectat = i;
+    deseneaza(r, true); salveaza();
+    if(ghidIdx >= 0) aratGhid(); else deseneazaLista();
+  });
+}
+
 function deseneazaLista(){
   document.getElementById('lista').innerHTML = rezultate.map((r,i)=>{
     const cls = 'p-' + (r.stare === 'ok' ? 'ok' : r.stare === 'atentie' ? 'atentie' : 'rau');
     const detaliu = r.linii.length
       ? r.linii.length + (r.linii.length===1?' fir · ':' fire · ') + textLungime(r.lungime) : '';
     let bucati = '';
-    if(i === selectat && r.lanturiIntregi.length > 1)
-      bucati = '<div class="bucati">' + r.lanturiIntregi.map((l,j)=>
-        '<button class="bucata' + (r.active[j] ? ' pornit' : '') + '" data-b="' + i + '_' + j + '">' +
-        (r.active[j] ? '✓ ' : '') + 'bucata ' + (j+1) + ' · ' + Math.round(lungime(l)) + ' m</button>').join('') + '</div>';
+    if(i === selectat && r.lanturiIntregi.length > 1) bucati = htmlBucati(r, i);
     let actiuni = '';
     if(i === selectat && r.lanturiIntregi.length)
       actiuni = '<div class="actiuni">' +
@@ -859,14 +900,7 @@ function deseneazaLista(){
   lst.querySelectorAll('[data-nu]').forEach(b => b.onclick = ()=>{
     rezultate[+b.dataset.nu].aprobat = false; salveaza(); deseneazaLista(); });
   lst.querySelectorAll('[data-ed]').forEach(b => b.onclick = ()=> intraGhid(+b.dataset.ed));
-  lst.querySelectorAll('[data-b]').forEach(b => b.onclick = ()=>{
-    const p = b.dataset.b.split('_'), i = +p[0], j = +p[1];
-    const r = rezultate[i];
-    r.active[j] = !r.active[j];
-    if(!r.active.some(Boolean)) r.active[j] = true;
-    recalculeaza(r); selectat = i;
-    deseneaza(r, true); salveaza(); deseneazaLista();
-  });
+  legaBucati(lst);
   rezumat();
 }
 
@@ -931,6 +965,58 @@ document.getElementById('btn-pliaza').onclick = ()=>{
   document.getElementById('btn-pliaza').textContent = pliat ? 'Arată harta' : 'Ascunde harta';
   if(!pliat) setTimeout(()=> harta.invalidateSize(), 120);
 };
+
+/* ══════════════════════════════════════════════════════════════════
+   MANERUL — trage ca să schimbi înălțimea hărții, apasă ca s-o ascunzi
+   ══════════════════════════════════════════════════════════════════ */
+(function maner(){
+  const m = document.getElementById('maner');
+  const H = () => document.getElementById('harta');
+  let start = null, mutat = 0;
+
+  function pune(px, salvez){
+    const max = Math.round(window.innerHeight * 0.7), min = 110;
+    px = Math.max(min, Math.min(max, Math.round(px)));
+    document.documentElement.style.setProperty('--hHarta', px + 'px');
+    if(salvez) try{ localStorage.setItem(CHEIE + '-h', px); }catch(e){}
+    if(harta) harta.invalidateSize();
+    return px;
+  }
+  try{
+    const salvat = +localStorage.getItem(CHEIE + '-h');
+    if(salvat > 60) document.documentElement.style.setProperty('--hHarta', salvat + 'px');
+  }catch(e){}
+
+  m.addEventListener('pointerdown', e=>{
+    if(document.body.classList.contains('pliat')) return;
+    start = {y:e.clientY, h:H().getBoundingClientRect().height};
+    mutat = 0;
+    m.setPointerCapture(e.pointerId);
+    m.classList.add('trage');
+    e.preventDefault();
+  });
+  m.addEventListener('pointermove', e=>{
+    if(!start) return;
+    const dy = e.clientY - start.y;
+    if(Math.abs(dy) > mutat) mutat = Math.abs(dy);
+    pune(start.h + dy, !1);
+  });
+  function gata(){
+    if(!start) return;
+    start = null;
+    m.classList.remove('trage');
+    pune(H().getBoundingClientRect().height, !0);
+  }
+  m.addEventListener('pointerup', gata);
+  m.addEventListener('pointercancel', gata);
+  m.addEventListener('click', ()=>{
+    if(mutat > 6){ mutat = 0; return; }     // a fost tragere, nu apăsare
+    const pliat = document.body.classList.toggle('pliat');
+    const b = document.getElementById('btn-pliaza');
+    if(b) b.textContent = pliat ? 'Arată harta' : 'Ascunde harta';
+    if(!pliat) setTimeout(()=> harta && harta.invalidateSize(), 120);
+  });
+})();
 
 window.addEventListener('popstate', ()=>{
   if(alIdx >= 0){ inchideAlegere(); try{ history.pushState({ias:1}, ''); }catch(e){} }
